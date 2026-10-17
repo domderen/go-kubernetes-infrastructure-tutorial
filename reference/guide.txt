@@ -1,0 +1,388 @@
+GO AND KUBERNETES INFRASTRUCTURE TUTORIAL
+Build a small control plane for managing workload capacity
+
+Purpose
+-------
+
+Learn to explain and implement reliable infrastructure automation with Go,
+Kubernetes, and Temporal. The recurring question is what happens when a
+process crashes, an event repeats, a request times out, or desired state
+changes halfway through provisioning.
+
+Build one cumulative project in lab/: a simulated GPU capacity provisioner.
+GPU hosts give us a concrete resource to manage, but the exercises require
+no physical GPUs, CUDA installation, bare-metal lab, or paid cloud account.
+The same control-plane ideas apply to other kinds of workload capacity.
+
+Use reference/links.md for the official sources behind each module. This
+text is self-contained; local reference PDFs are optional and not tracked.
+
+How to work through the tutorial
+===============================
+
+Follow the modules at your own pace. Begin each module with a self-check
+question, then adapt the depth to the answer. Prior experience is not
+assumed to have been assessed. Spend roughly 30% of a session reading,
+50% implementing or diagramming, and 20% explaining without notes.
+
+Keep tooling setup to roughly 30 minutes at a time. If infrastructure setup
+would consume the session, use pure Go tests and a diagram. A full kind
+cluster is optional. Record demonstrated learning separately from planned
+work in notes/PROGRESS.md and notes/SESSION_LOG.md.
+
+Highest-priority concepts:
+- Reconciliation and idempotency.
+- Workflow replay versus activity retries and safe external side effects.
+- Cooperative cancellation, goroutine ownership, and bounded concurrency.
+- Clear state ownership across Kubernetes, Temporal, and the provider.
+
+Deep CUDA programming, scheduler plugins, and a physical cluster installation
+are outside the core tutorial.
+
+MODULE 1: GO CONCURRENCY, CANCELLATION, AND DIAGNOSTICS
+===================================================
+
+Learn and refresh
+-----------------
+
+- Pass context explicitly and propagate deadlines into HTTP/gRPC calls.
+  Call cancellation functions. Cancellation is cooperative: it does not
+  forcibly stop arbitrary code. Decide who owns and waits for each goroutine.
+- Compare channels and mutexes. Study bounded parallelism, errgroup,
+  backpressure, channel-closing ownership, and shutdown with queued work.
+  Explain how blocked sends, abandoned receivers, and ignored contexts
+  leak goroutines.
+- Review slice backing-array aliasing, map synchronization, interfaces
+  containing nil pointers, pointer/value receivers, error wrapping, and
+  errors.Is/As. Practice reviewing a short unfamiliar function.
+- Use the race detector for exercised races and pprof for CPU, heap, and
+  goroutine investigation. Distinguish allocation rate from retained memory.
+  A successful race-detector run is evidence, not proof about all schedules.
+
+Exercise: bounded host-health checker
+------------------------------------
+
+Implement CheckHosts(ctx, hosts, limit) using a fake provider. Call a
+simulated health endpoint for each host, limit concurrent calls, return
+per-host outcomes, and stop scheduling on cancellation. Decide up front
+whether an unhealthy host is an ordinary result or a fatal error.
+
+Verification:
+- Concurrency bound: simultaneous provider calls never exceed the limit.
+- Cancellation: blocked calls observe cancellation, the checker returns,
+  and started workers exit.
+- Mixed outcomes: failed hosts do not silently discard successful results.
+- Shared state: run go test -race ./... and avoid unsynchronized map writes.
+
+Self-check questions
+--------------------
+
+1. Why does launching one goroutine per server become dangerous at scale?
+2. When would you choose a mutex instead of a channel?
+3. Why can an error interface be non-nil when it contains a nil pointer?
+4. How would you distinguish a goroutine leak from a temporary traffic spike?
+
+Read: Go pipelines and cancellation, context, errgroup, the race detector,
+and Go diagnostics. Focus on cancellation contracts and blocked operations.
+
+MODULE 2: KUBERNETES RECONCILIATION AND RESOURCE LIFECYCLE
+=======================================================
+
+A controller observes current state and acts to converge toward desired
+state. An operator packages domain-specific operational knowledge in
+controllers, commonly using custom resources. A CRD alone does not
+implement operational behavior.
+
+Concepts to explain
+-------------------
+
+- Level-based reconciliation: events enqueue object keys. Re-read the
+  object and the current world rather than depending on every event or a
+  particular create-update-delete sequence. Repeated execution must be safe.
+- API shape: spec expresses intent; status reports observations. Use
+  conditions, reasons, and observed generation so an old Ready result
+  cannot describe a newer spec.
+- Deletion: persist a finalizer before creating external resources. On
+  deletionTimestamp, converge cleanup and remove the finalizer only after
+  its obligations are satisfied. Owner references do not delete arbitrary
+  external hardware allocations.
+- Concurrency: understand resourceVersion conflicts, fresh reads when
+  correctness requires them, patch/update ownership, bounded reconciliation
+  concurrency, and leader election. A controller cache is not a transactionally
+  consistent view of an external provider.
+- Failure behavior: distinguish transient errors, permanent invalid specs,
+  and work still in progress. Use rate-limited retries or scheduled requeues.
+  Avoid tight loops and long blocking waits inside Reconcile.
+
+Exercise: GPUCluster resource
+-----------------------------
+
+Define spec fields for node count, GPU class, and location; status for ready
+capacity, conditions, and operation identity. Reconcile against a fake
+provider. Add no-op behavior when already converged, safe external deletion,
+and status updates only when observations change. For the lab, reject spec
+changes while provisioning; discuss how a production design could serialize
+them.
+
+Inject these failures:
+- Repeated reconciliation: one logical allocation, without duplicate hosts
+  or workflows.
+- External create succeeds but status write fails: the next pass finds the
+  existing operation/resource through stable identity.
+- Delete during provisioning: stale creation cannot continue after cleanup
+  has released the allocation.
+- Kubernetes update conflict: retry with current state and preserve other
+  writers' fields.
+
+Self-check: sketch Reconcile and explain recovery after a crash at every
+external call. Explain why a generation-only event filter needs care around
+finalizers and deletion.
+
+Read: Kubernetes controllers, operator pattern, Kubebuilder good practices,
+the controller walkthrough, and finalizers.
+
+MODULE 3: TEMPORAL DURABILITY, REPLAY, AND RETRIES
+==============================================
+
+A workflow defines durable orchestration. Workers execute workflow code
+and activities; the service persists history and distributes tasks. Replay
+reconstructs workflow state from recorded events. An activity whose
+completion is recorded does not run again merely because workflow code
+replays. An activity with an ambiguous outcome can still be retried.
+
+Concepts to explain
+-------------------
+
+- Determinism: use workflow.Now, workflow.Sleep, and workflow.Go. Put
+  external I/O in activities. Avoid wall-clock reads, uncontrolled randomness,
+  and map-order-dependent command scheduling. Use workflow coordination
+  primitives rather than ordinary goroutines and channels in workflow code.
+- Idempotent activities: a host may be provisioned even if the completion
+  response is lost. Retry with a stable operation key and inspect the provider.
+  Exactly-once external provisioning is not supplied automatically.
+- StartToClose: the maximum duration of one activity attempt.
+- ScheduleToClose: the overall activity time budget, including queueing
+  and retries.
+- HeartbeatTimeout: detects missing progress in a long-running activity;
+  heartbeat details can support resumption.
+- Retries and cancellation: retry transient failures and distinguish invalid
+  requests. Heartbeat and observe cancellation in long activities. Timeouts
+  do not forcibly stop external operations.
+- Signal: asynchronous input. Query: read-only state. Update: a tracked
+  request that can validate and change state and return a result.
+
+Exercise: ProvisionCluster
+--------------------------
+
+Use activities for ReserveHosts, EnsureImage, JoinCluster, and ValidateGPU.
+Give provisioning operations stable IDs. Inject transient failure and a
+lost response after a successful side effect. Inspect history and show
+that a worker restart preserves recorded progress. Keep fake-provider state
+alive or durable if the provider also restarts.
+
+Design cleanup as explicit compensating actions rather than assuming a
+database rollback. Distinguish cancellation from termination, which bypasses
+graceful workflow cleanup. Quarantine uncertain hardware actions and surface
+actionable conditions rather than claiming an uncertain rollback succeeded.
+
+Study replay tests, compatible workflow changes, GetVersion patching, and
+the current Worker Versioning documentation. Continue-As-New bounds history
+for long-lived workflows. Pin SDK dependencies when this lesson begins.
+
+Self-check: explain replay versus activity retry using the lost-response
+example, then choose timeouts and cancellation behavior for a slow image step.
+
+Read: Temporal Go workflow basics, activity semantics, timeouts, message
+passing, versioning, and the Go testing suite.
+
+MODULE 4: WORKLOAD CAPACITY, HARDWARE LIFECYCLE, AND DIAGNOSIS
+==========================================================
+
+Propose a lifecycle: discover and inventory; reserve exclusively; configure
+networking/boot; install an OS image; join the cluster; validate the GPU stack;
+expose healthy capacity; drain; repair or decommission. These are teaching
+states, not a claim about a particular production implementation.
+
+Vocabulary
+----------
+
+- BMC / Redfish / IPMI: out-of-band host management, including power, boot,
+  and inventory when the OS is unavailable. Redfish uses a standardized
+  REST interface.
+- PXE / iPXE: network boot used in automated provisioning. Identify where
+  image delivery, boot configuration, and failures enter the lifecycle.
+- Metal3 / Ironic / Cluster API: recognize the ecosystem and inspect the
+  BareMetalHost resource. Evaluate existing lifecycle machinery before
+  building each hardware integration.
+- GPU Operator / device plugin: distinguish management of the driver,
+  toolkit, plugin, and monitoring from exposing schedulable GPU resources.
+- MIG / time-slicing: MIG partitions supported GPUs with hardware memory
+  and fault isolation. Time-slicing does not provide equivalent isolation
+  or create additional physical memory.
+- NVLink / NCCL / IB / RoCE: recognize GPU connectivity, collective
+  communication, and high-performance networks. Placement and topology
+  matter for multi-GPU workloads.
+
+Scheduling and diagnosis
+------------------------
+
+For the conventional device-plugin path, understand nvidia.com/gpu limits,
+labels/affinity, taints/tolerations, and quotas. Study fragmentation: eight
+free GPUs across unsuitable hosts may not satisfy one eight-GPU request.
+Clarify workload shape and topology before proposing a packing policy.
+
+For a Pending GPU pod, inspect events, node allocatable GPUs, requested
+type/count, affinity, taints, and quotas. For a scheduled but failing pod,
+inspect drivers, container runtime, plugin/operator logs, and node health.
+Separate scheduler shortage, device failure, and application CUDA errors.
+
+Discuss bounded concurrent repairs, failure-domain limits, drain policy,
+checkpoint/restart needs, and escalation for uncertain hardware state.
+A successful drain does not guarantee transparent workload migration.
+
+Self-check: draw boot-to-ready and diagnose a Pending GPU pod. Identify
+which observations belong to the scheduler, node, provider, or application.
+
+Read: Metal3 Bare Metal Operator, Redfish, GPU Operator, Kubernetes GPU
+scheduling, and GPU sharing.
+
+MODULE 5: CONTROL-PLANE DESIGN AND OWNERSHIP
+==========================================
+
+Design a self-service API that provisions, scales, repairs, and deletes
+workload capacity. Operations take minutes; processes restart; users repeat
+requests or delete resources during creation. Clarify fleet size, tenancy,
+latency targets, host ownership, and the desired-state API first.
+
+One teaching architecture
+-------------------------
+
+- GPUCluster API/resource: desired state, validation, identity, and lifecycle
+  policy; access is governed by Kubernetes authorization.
+- Kubernetes controller: observes desired/actual state, ensures the correct
+  operation exists, projects status, repairs drift, and coordinates deletion.
+- Temporal workflow: durably sequences a logical operation with waits,
+  retries, deadlines, and compensating actions.
+- Activity workers: perform provider, BMC, and Kubernetes I/O; enforce
+  idempotency and check current operation ownership.
+- Inventory/provider: authoritatively reserves hosts, records operation
+  identity, rejects conflicting ownership, and supplies observed state.
+
+Decisions to make explicit
+--------------------------
+
+1. Give each decision one owner. Do not let a reconciler and workflow
+   independently select and allocate hosts. Distinguish desired state,
+   in-flight operation state, and physical allocation.
+2. Make identity survive a crash. Derive an operation ID from resource UID,
+   operation type, and revision/token. Persist or deterministically derive it
+   before dispatch. Choose explicit workflow ID conflict/reuse behavior.
+3. Dispatch and status are not atomic. If workflow start succeeds but status
+   persistence fails, recover the existing operation. Stable identity alone
+   is insufficient if reuse policy permits accidental reruns after completion;
+   inspect authoritative completion/resource state.
+4. Serialize mutations. Reject edits during an operation in the lab. Discuss
+   per-resource coordination, serialized operations, and fencing tokens in
+   production so stale work cannot overwrite new intent.
+5. Continue observing reality. Recorded workflow completion does not
+   guarantee that hardware remains healthy after provisioning.
+
+Measure request-to-ready latency, ready/reserved capacity, provisioning
+failure rate, retry counts, task-queue delay, stuck deletion age, GPU health,
+and repair blast radius. Correlate logs by resource UID, operation/workflow
+ID, and host ID.
+
+Use this explanation structure: invariant, state owner, normal path,
+injected failure, recovery, tradeoff, measurement.
+
+MODULE 6: CUMULATIVE LAB AND FAILURE VERIFICATION
+===============================================
+
+Build in increments
+-------------------
+
+1. Fake host provider and bounded health checker. Model reservations by
+   stable key. Concurrent requests must not allocate a host twice.
+2. GPUCluster type and reconciler. Repeated reconciliation converges;
+   deletion retains the finalizer while cleanup is incomplete. Start a
+   minimal Temporal workflow separately.
+3. Move simulated lifecycle steps into activities. Configure retries and
+   timeouts; inspect history; retry safely after a lost response.
+4. Connect reconciliation to workflow identity. Recover after a successful
+   workflow start followed by failed status persistence. Explain deletion
+   during an in-flight operation.
+
+Six failure windows
+-------------------
+
+- Duplicate create: repeat a request or reconciliation. Count logical
+  allocations and operations, not merely function calls.
+- Lost completion: allocate a host and then return a timeout. A retry
+  returns the same allocation rather than allocating another host.
+- Worker crash: restart a worker during a workflow. Recorded completions
+  remain recorded and pending work resumes. Preserve fake-provider state.
+- Deletion race: delete while imaging is active. Stop or fence creation,
+  finish/quarantine ambiguous work, release allocation, then remove the
+  finalizer when its obligations are satisfied.
+- Spec changes: change requested size during provisioning. Demonstrate the
+  rejection or serialization policy and prevent stale updates.
+- Terminal failure: invalid GPU class or an unavailable repair path surfaces
+  a useful condition and reason without an infinite hot retry loop.
+
+Choose the right test layer
+--------------------------
+
+Unit-test planning and idempotency with a fake provider. Use Temporal's
+workflow test environment for orchestration and time skipping, and replay
+tests for compatibility with histories. Use envtest for Kubernetes API
+behavior; it does not run the full cluster or built-in controllers. Use
+kind only when a full integration demonstration adds value.
+
+The lab should demonstrate the happy path and at least two failure cases.
+Explain the remaining cases precisely and identify what the fake cannot
+validate: real BMC behavior, GPU drivers, physical networking, and actual
+scheduler/hardware integration.
+
+MODULE 7: TECHNICAL WALKTHROUGH AND REFLECTION
+============================================
+
+Explain a concept without notes, then discuss a failure case and tradeoff.
+Use the implementation and observed test results as evidence.
+
+Review prompts
+--------------
+
+- Why use both a controller and Temporal? Explain continuous convergence
+  versus durable multi-step execution, ownership, and when one tool suffices.
+- Is an activity exactly once? Explain ambiguous outcomes, retries,
+  idempotency keys, and recorded completion versus external side effects.
+- Why is a resource stuck Terminating? Inspect finalizers, the owning
+  controller, and pending cleanup before changing lifecycle protection.
+- Why is a GPU pod Pending? Discuss events, capacity, type/count, placement,
+  taints, quotas, fragmentation, and device-stack health as appropriate.
+- How do you prevent double reservation? Use an authoritative atomic
+  reservation or lease and fence stale workers. A process-local mutex does
+  not coordinate a fleet.
+- What happens when a driver rollout breaks a failure domain? Discuss
+  canaries, staged rollout, health checks, pause/rollback, and quarantine.
+
+Record understanding only after observing an explanation:
+0 = cannot yet explain; 1 = correct concept; 2 = failure case and tradeoff.
+Keep unassessed topics distinct from 0.
+
+Completion checklist
+--------------------
+
+- Distinguish controller, operator, and CRD.
+- Walk through repeated reconciliation and deletion with a finalizer.
+- Explain workflow replay, activity retry, and a lost-response scenario.
+- Distinguish activity attempt, overall, and heartbeat timeouts.
+- Explain cooperative cancellation in Go and Temporal.
+- Design one authoritative host reservation and fence stale operations.
+- Explain workload placement, capacity fragmentation, and GPU component
+  boundaries without claiming the local fake validates real hardware.
+- Demonstrate meaningful tests and identify their limits.
+- Name a design tradeoff and a useful operational measurement.
+
+Continue with targeted exercises where the explanation or failure handling
+is weak. Keep the next concrete step in notes/PROGRESS.md.

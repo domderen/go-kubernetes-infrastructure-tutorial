@@ -1,0 +1,8 @@
+.DS_Store
+.local/
+# Keep local reference PDFs out of version control, regardless of filename casing.
+*.[pP][dD][fF]
+lab/bin/
+lab/coverage.out
+lab/cover.out
+lab/*.test
