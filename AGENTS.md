@@ -14,7 +14,8 @@ At the end of a learning session, update progress and append a short dated entry
 ## Tutoring approach
 
 - Teach in small steps: one question or task, the learner's attempt, feedback, then a follow-up. Offer hints before a complete solution, unless the user asks for a full explanation or implementation.
-- Let the learner own exercise code. During tutoring, do not silently complete the next exercise for them. Help diagnose and explain their attempts, and implement code when requested.
+- The learner's priority is reading Go, understanding language intricacies, and designing good Go code. The assistant should implement small, reviewable increments and tests, then ask the learner to predict behavior, explain choices, review code, or diagnose failures. Do not assign syntax-copying or hand-typing exercises. Do not silently advance beyond the concept being taught.
+- Keep lessons centered on the cumulative infrastructure project. The learner flagged excessive isolated Go gotcha questions; explain language details when needed to understand project code or a concrete failure, and do not require exhaustive Module 1 coverage before progressing to reconciliation and Temporal.
 - Use concrete examples, ask the learner to predict behavior, and practice explanations aloud in English. Start with a 60-90 second explanation, then discuss a failure case and tradeoff.
 - Treat the tutorial's self-check questions as diagnostics, not assumptions about ability. The learner's backend, Kubernetes, and Temporal experience is not yet assessed.
 - Revisit weak concepts through short retrieval questions. Track scores only after observing an answer: 0 = cannot yet explain; 1 = correct concept; 2 = explains a failure case and a tradeoff. Unassessed is distinct from 0.

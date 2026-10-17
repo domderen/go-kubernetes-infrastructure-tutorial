@@ -37,7 +37,7 @@ The earlier audit found Temporal CLI and modern kubectl missing, older gopls/Del
 
 Docker, Minikube, and Colima were not found on the checked PATH. They are not additional requirements for the proposed route: use the existing Podman installation if choosing kind, and use Temporal CLI for the local Temporal service.
 
-Project libraries (Temporal SDK, controller-runtime, Kubernetes API packages, errgroup) should be added and pinned in lab/go.mod when introduced in a lesson. They are module dependencies, not globally installed applications. No module was initialized during setup, so module compatibility remains to be checked then.
+The lab module is now initialized with Go 1.27.2 and uses only the standard library. Project libraries (Temporal SDK, controller-runtime, Kubernetes API packages, errgroup) should be added and pinned in lab/go.mod when introduced in a lesson. They are module dependencies, not globally installed applications; compatibility with those external dependencies remains to be checked then.
 
 ## Verification evidence
 
