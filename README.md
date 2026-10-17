@@ -35,4 +35,4 @@ cd ~/dev/go-kubernetes-infrastructure-tutorial
 
 The next step is a short Go baseline check, followed by a bounded concurrent host-health checker. No learning module has been completed yet.
 
-The initial audit found the Go toolchain ready. Temporal CLI and modern Kubernetes test tooling need setup for later lessons. A full kind cluster is optional; begin with Go unit tests, then use Temporal's test suite and Kubernetes envtest.
+The Go toolchain, Temporal CLI, kubectl, and updated Go editor/debugger tools are installed. Local Temporal and a fresh Podman VM were started and verified on 17 October 2026; see the environment notes for service controls. Matching native Kubernetes test assets and pinned project dependencies will be added when their lessons begin. A full kind cluster is optional; begin with Go unit tests, then use Temporal's test suite and Kubernetes envtest.

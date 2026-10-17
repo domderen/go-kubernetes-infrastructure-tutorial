@@ -6,7 +6,7 @@ Last updated: 17 October 2026 (Europe/Warsaw).
 
 - Goal: learn Go, Kubernetes, Temporal, and infrastructure for managing workloads with an interactive tutor across multiple sessions.
 - The learner's experience and available study time are not yet assessed.
-- Workspace setup and the initial machine audit are complete. No learning module or project exercise has been attempted.
+- Workspace setup, machine audit, and the requested tool/service preparation are complete. No learning module or project exercise has been attempted.
 - The checked-in tutorial is self-contained. Local reference PDFs are optional and ignored by Git.
 
 ## Progress
@@ -29,10 +29,11 @@ Last updated: 17 October 2026 (Europe/Warsaw).
 
 ## Open setup items
 
-- Temporal CLI for a local service and history UI.
-- Modern native kubectl for hands-on cluster interaction.
-- Matching native envtest assets when the controller module is scaffolded.
-- Refresh gopls and, if debugging is useful, Delve; their installed versions are older and compatibility has not been tested.
-- Start the existing Podman VM only if the optional kind integration exercise is chosen.
+Prepared 17 October 2026: installed Temporal CLI 1.9.1 and kubectl 1.37.1; updated gopls to 0.24.0 and Delve to 1.27.2. Temporal is running with persistent repo-local state. Replaced the old Podman VM with the running infrastructure-tutorial VM (4 CPUs, 8 GiB RAM, 70 GiB disk); a disposable container ran successfully. See ENVIRONMENT.md for controls and verification details.
+
+- Obtain matching native envtest assets when the controller module is scaffolded.
+- Add and pin Go project dependencies when their lessons begin.
+- Create the optional kind cluster only when its exercise begins; match its Kubernetes version to kubectl.
+- Recheck service availability at the next session. Interactive editor/debugger behavior has not been tested.
 
 No scores, misconceptions, or completed exercises have been recorded yet.

@@ -4,7 +4,11 @@ Checked: 17 October 2026, Europe/Warsaw. This is a snapshot, not a promise that 
 
 ## Readiness
 
-Ready to begin the tutorial's Go and fake-provider exercises. Further setup is needed for a live Temporal service and modern Kubernetes integration tooling. The core project uses simulated GPU hosts; it needs no physical GPUs, CUDA toolkit, NVIDIA drivers, Redfish hardware, or cloud account. A full kind cluster is optional.
+Ready to begin the Go exercises. Temporal CLI and modern kubectl are installed, Go editor/debugger tools are updated, and local Temporal and Podman services are running as verified below. Project dependencies and matching native envtest assets will be selected when their lessons begin. The core project uses simulated GPU hosts; it needs no physical GPUs, CUDA toolkit, NVIDIA drivers, Redfish hardware, or cloud account. A full kind cluster is optional and has not been created.
+
+### Before installation, 17 October 2026 (historical)
+
+The earlier audit found Temporal CLI and modern kubectl missing, older gopls/Delve versions, and only legacy Intel envtest binaries. The follow-up initially could not inspect Podman's lockfile inside the sandbox. Installation and service setup were subsequently explicitly authorized and performed with elevated access. The table below reflects the resulting state; lab/ still contains only its placeholder.
 
 ## Machine
 
@@ -20,15 +24,15 @@ Ready to begin the tutorial's Go and fake-provider exercises. Further setup is n
 | Git | 2.56.0 | Version command succeeded. |
 | C compiler / build tools | Apple clang 17.0.0; GNU Make 3.81 | Version commands and Go race build succeeded; Xcode developer directory selected. |
 | Editor | VS Code 1.142.0 with golang.go extension; VSCodium also installed | VS Code CLI version and installed extension listing. |
-| gopls | 0.19.1 at ~/go/bin/gopls | Binary runs; compatibility with the current Go version not tested. |
-| Delve | 1.21.2 at ~/go/bin/dlv | Binary runs; actual debugging with Go 1.27 not tested. Optional for the tutorial. |
+| gopls | Updated 0.19.1 → 0.24.0 at ~/go/bin/gopls | Installed with Homebrew Go; version command succeeds; native arm64. Interactive editor behavior not tested. |
+| Delve | Updated 1.21.2 → 1.27.2 at ~/go/bin/dlv | Installed with Homebrew Go; version command succeeds; native arm64. Interactive debugging not tested. |
 | Kubebuilder | 4.16.0 | Version command succeeded; project not scaffolded yet. |
-| kind | 0.33.0 | Binary runs; cluster listing cannot complete while Podman is stopped. |
-| Podman | Client 6.1.4; Podman Desktop installed | Existing podman-machine-default VM is stopped. Client cannot connect to its local service. |
+| kind | 0.33.0 | Cluster listing using Podman succeeds; no kind clusters found. |
+| Podman | Client/server 6.1.4; Podman Desktop installed | New infrastructure-tutorial VM running; linux/arm64 guest; disposable hello-world container succeeded. |
 | Helm | 4.3.1 | Version command succeeded; not required for the first exercises. |
-| kubectl | No current command on PATH | Legacy /usr/local/kubebuilder/bin/kubectl runs as v1.19.2, darwin/amd64. Use a current native client for the future lab. |
+| kubectl | Installed 1.37.1 at /opt/homebrew/bin/kubectl | Client version command succeeds; native arm64. No Kubernetes API server/cluster created yet. |
 | envtest assets | Legacy Intel binaries only in the standard legacy location | kube-apiserver 1.19.2 and etcd 3.4.9; unsuitable as the planned modern lab assets. No setup-envtest on checked PATH. Project-local assets are not provisioned yet. |
-| Temporal CLI | Not found on checked PATH or common user/Homebrew executable locations | Needed for the proposed local service/history UI path; not needed to start Go or SDK-only workflow unit tests. |
+| Temporal CLI | Installed 1.9.1 at /opt/homebrew/bin/temporal; embedded server 1.32.0, UI 2.54.1 | Native arm64; local service health SERVING, default namespace registered, web UI HTTP 200. |
 | Go dependency access | proxy.golang.org reachable | HEAD request to Temporal SDK version list returned HTTP 200; project dependency resolution has not been exercised. |
 
 Docker, Minikube, and Colima were not found on the checked PATH. They are not additional requirements for the proposed route: use the existing Podman installation if choosing kind, and use Temporal CLI for the local Temporal service.
@@ -45,25 +49,27 @@ go test -race -count=1 ./...
 
 The command succeeded with exit 0. This verifies compilation, C toolchain/race-runtime availability, and execution on this Mac. It does not implement or validate the tutorial's health checker. The temporary module was removed.
 
-The existing Podman machine is configured with 4 CPUs, 8 GiB RAM, and a 70 GiB disk. `podman machine list` reported Running=false, and `podman info` / `kind get clusters` failed to connect to its local socket. A running cluster was not verified.
+Replaced podman-machine-default, including its VM storage, with explicit user authorization. The new infrastructure-tutorial VM uses applehv, 4 CPUs, 8 GiB RAM, and a 70 GiB disk. Containers run rootfully inside the VM; the default connection is infrastructure-tutorial-root. Confirmed Running=true, Starting=false, matching client/server versions 6.1.4, and successful arm64 hello-world execution. Removed the test image; container, image, and volume listings are empty. Podman-backed kind listing succeeds with no clusters.
 
-## Setup commands for later lessons (not executed)
+The command runner initially terminated VM helpers after startup, leaving partially initialized disks and stale sockets. Recreated the clean disk and started through a session-only macOS job, local.infrastructure-tutorial.podman-start, with AbandonProcessGroup=true. Definition/logs are in .local/podman/. This is registered for the current login session, not installed as a login startup agent. The VM remains available after the start job exits.
 
-For the local Temporal service, [Temporal's Go setup documentation](https://docs.temporal.io/develop/go/set-up-your-local-go) recommends the CLI:
+Temporal runs as a detached local process, bound to 127.0.0.1:7233 with UI on 127.0.0.1:8233. Persistent database: .local/temporal/dev.db; log: .local/temporal/server.log; PID: .local/temporal/server.pid. Database creation, service health, namespace registration, and UI response were checked. No workflow has been created; persistence across service restart has not been exercised. All .local files are ignored by Git. No automatic Temporal startup at login was configured.
+
+## Service controls and remaining setup
+
+Temporal is already running. After stopping it or rebooting, start it in a terminal following [Temporal's CLI documentation](https://docs.temporal.io/cli/setup-cli):
 
 ```sh
-brew install temporal
 cd ~/dev/go-kubernetes-infrastructure-tutorial
 mkdir -p .local/temporal
 temporal server start-dev --db-filename .local/temporal/dev.db
 ```
 
-The database file preserves history across service restarts. Stop the foreground service with Ctrl-C. The default service and UI addresses are localhost:7233 and http://localhost:8233. Check CLI help at execution time if flags have changed. A local Temporal service does not require a container engine through this route.
+The database file is configured to preserve history across service restarts. Stop a foreground instance with Ctrl-C. For the detached instance, read .local/temporal/server.pid, verify the PID still belongs to this Temporal command, then send it SIGTERM. Its PID file is not automatically refreshed if you start a new instance manually. A local Temporal service does not require a container engine through this route.
 
-For a modern Kubernetes CLI, follow [the official macOS kubectl instructions](https://kubernetes.io/docs/tasks/tools/install-kubectl-macos/):
+kubectl is installed using [the official macOS kubectl instructions](https://kubernetes.io/docs/tasks/tools/install-kubectl-macos/):
 
 ```sh
-brew install kubectl
 kubectl version --client
 ```
 
@@ -71,16 +77,24 @@ Choose a client within one Kubernetes minor version of the eventual cluster. Do 
 
 For envtest, choose versions with the controller module, then use the generated Makefile's `make envtest` / `make test` targets to obtain matching native assets. See [Kubebuilder envtest documentation](https://book.kubebuilder.io/reference/envtest). The test plane includes the API server and etcd; it does not run the full cluster or built-in controllers. Do not point KUBEBUILDER_ASSETS at the old Intel binaries.
 
-Only if a full local integration exercise is useful:
+Podman is already running. From a regular terminal, stop/start it with:
 
 ```sh
-podman machine start podman-machine-default
+podman machine stop infrastructure-tutorial
+podman machine start --update-connection infrastructure-tutorial
 podman info
+```
+
+When starting through the agent's command runner, use the session job to preserve VM helpers. After a clean stop, restart its completed job with `launchctl kickstart gui/$(id -u)/local.infrastructure-tutorial.podman-start`. If it is no longer registered after logout/reboot, load the saved definition using `launchctl bootstrap gui/$(id -u) "$PWD/.local/podman/launch-agent.plist"` from the repo. Do not start another copy while the VM is already running.
+
+Only if a full local integration exercise is useful (not yet executed):
+
+```sh
 KIND_EXPERIMENTAL_PROVIDER=podman kind create cluster --name infrastructure-tutorial
 kubectl --context kind-infrastructure-tutorial get nodes
 ```
 
-[kind documents Podman support](https://kind.sigs.k8s.io/docs/user/rootless/). This Mac's Podman/kind combination has not yet been tested with a running VM; do not mark cluster readiness until the node check succeeds. Cluster creation downloads images and may update kubeconfig; use its dedicated context for subsequent commands.
+[kind documents Podman support](https://kind.sigs.k8s.io/docs/user/rootless/). The running VM and kind's cluster listing were verified, but full cluster creation has not been tested. Match the cluster image version to kubectl's supported minor-version range. Cluster creation downloads images and may update kubeconfig; use its dedicated context for subsequent commands.
 
 ## Shell resolution
 
