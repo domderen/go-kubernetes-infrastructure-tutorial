@@ -57,7 +57,21 @@ Temporal runs as a detached local process, bound to 127.0.0.1:7233 with UI on 12
 
 ## Service controls and remaining setup
 
-Temporal is already running. After stopping it or rebooting, start it in a terminal following [Temporal's CLI documentation](https://docs.temporal.io/cli/setup-cli):
+### 18 October 2026 - Lab checkpoint
+
+The lab still uses only the standard library. Sequential/concurrent checkers,
+simulated health endpoints, allocation reconciliation, and owner-scoped cleanup
+are implemented, with runnable fleet and reconciliation examples. The complete
+Go test suite passed with the race detector using /opt/homebrew/bin/go and the
+repo-local .local/go-build cache. No new tools or external dependencies were
+installed today. Temporal/Podman availability was not rechecked; their last
+verified service state below is from 17 October. Native envtest assets,
+controller-runtime/Kubernetes libraries, CRDs, and a running controller remain
+for the next scaffold. The allocation simulator has no persistent storage.
+
+### Local service controls (last verified 17 October)
+
+Temporal was running at the 17 October verification. After stopping it or rebooting, start it in a terminal following [Temporal's CLI documentation](https://docs.temporal.io/cli/setup-cli):
 
 ```sh
 cd ~/dev/go-kubernetes-infrastructure-tutorial
@@ -77,7 +91,7 @@ Choose a client within one Kubernetes minor version of the eventual cluster. Do 
 
 For envtest, choose versions with the controller module, then use the generated Makefile's `make envtest` / `make test` targets to obtain matching native assets. See [Kubebuilder envtest documentation](https://book.kubebuilder.io/reference/envtest). The test plane includes the API server and etcd; it does not run the full cluster or built-in controllers. Do not point KUBEBUILDER_ASSETS at the old Intel binaries.
 
-Podman is already running. From a regular terminal, stop/start it with:
+Podman was running at the 17 October verification. From a regular terminal, stop/start it with:
 
 ```sh
 podman machine stop infrastructure-tutorial

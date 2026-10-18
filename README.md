@@ -18,6 +18,8 @@ Start with the [tutorial guide](reference/guide.txt) and [official documentation
 ## Workspace
 
 - `lab/`: the cumulative project; separate sequential (`health_sequential.go`) and bounded concurrent (`health_concurrent.go`) host-health checkers, with shared behavior and concurrency tests.
+- `lab/provider.go` and [the fleet demo](lab/examples/fleet/README.md): a simulated host provider with healthy, unhealthy, slow, and canceled health checks (`go run ./examples/fleet` from `lab/`).
+- `lab/allocation.go`, `lab/reconcile.go`, and [the reconciliation demo](lab/examples/reconcile/README.md): UID-owned allocations, recovery after a controller loses its report, repeatable cleanup, and rejection of delayed provisioning (`go run ./examples/reconcile` from `lab/`).
 - `lab/examples/slices/`: runnable examples comparing length, capacity, backing-array reuse, and nested shallow copies (`go run ./examples/slices` from `lab/`).
 - [Learning progress](notes/PROGRESS.md): demonstrated understanding and the next exercise.
 - [Session log](notes/SESSION_LOG.md): continuity across learning sessions.
@@ -34,6 +36,6 @@ Open this directory and ask to continue the tutorial. The tutor reads the saved 
 cd ~/dev/go-kubernetes-infrastructure-tutorial
 ```
 
-Module 1 is in progress. The next step is connecting the bounded checker to a simulated host provider, then moving to Kubernetes reconciliation. The assistant writes small implementations; the learner practices reading, reviewing, predicting behavior, and explaining tradeoffs. Go language details are introduced when the project needs them. No learning module has been completed yet.
+Module 1's checker and simulated fleet are implemented, and Module 2 has begun with allocation reconciliation and cleanup in plain Go. Resume with recovery after cleanup succeeds but the controller crashes before removing its finalizer, then add the Kubernetes resource/controller adapter. Provider state currently lives only in memory; no CRD or running Kubernetes controller exists yet. The assistant writes small implementations; the learner practices reading, reviewing, predicting behavior, and explaining tradeoffs. Go language details are introduced when the project needs them. No learning module has been completed yet.
 
 The Go toolchain, Temporal CLI, kubectl, and updated Go editor/debugger tools are installed. Local Temporal and a fresh Podman VM were started and verified on 17 October 2026; see the environment notes for service controls. Matching native Kubernetes test assets and pinned project dependencies will be added when their lessons begin. A full kind cluster is optional; begin with Go unit tests, then use Temporal's test suite and Kubernetes envtest.
