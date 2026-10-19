@@ -30,13 +30,15 @@ type HostAllocator interface {
 	EnsureHost(context.Context, string, int) (HostAllocation, error)
 }
 
-// SimulatedAllocator holds external allocation state for controller tests.
-// Keep this instance alive when simulating a controller restart; it is not durable.
+// SimulatedAllocator holds in-memory provider state for the lab.
+// Keep it alive across simulated controller/activity restarts; it is not durable.
 type SimulatedAllocator struct {
 	mu             sync.Mutex
 	hosts          map[allocationKey]HostAllocation
 	releasedOwners map[string]bool
 	nextID         uint64
+	imageJobs      map[imageOperationKey]ImageJob
+	nextImageID    uint64
 }
 
 type allocationKey struct {

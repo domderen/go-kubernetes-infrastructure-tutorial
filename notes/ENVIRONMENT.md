@@ -1,14 +1,14 @@
 # Environment audit
 
-Checked: 17 October 2026, Europe/Warsaw. This is a snapshot, not a promise that services remain running across sessions.
+Checked: 17 October 2026 tool/service audit; 18 October Go/Kubernetes adapter setup; 19 October manager/Temporal SDK tests, Europe/Warsaw. This is a snapshot, not a promise that services remain running across sessions.
 
 ## Readiness
 
-Ready to begin the Go exercises. Temporal CLI and modern kubectl are installed, Go editor/debugger tools are updated, and local Temporal and Podman services are running as verified below. Project dependencies and matching native envtest assets will be selected when their lessons begin. The core project uses simulated GPU hosts; it needs no physical GPUs, CUDA toolkit, NVIDIA drivers, Redfish hardware, or cloud account. A full kind cluster is optional and has not been created.
+Ready for the current Go, Kubernetes adapter, and Temporal SDK tests. Pinned libraries and matching native envtest assets are installed; the combined make test suite passed on 19 October. Temporal SDK tests run in-process without a server. Temporal CLI and modern kubectl are installed, and editor/debugger tools were updated on 17 October. Temporal/Podman service availability was last verified on 17 October. The core project uses simulated GPU hosts; it needs no physical GPUs, CUDA toolkit, NVIDIA drivers, Redfish hardware, or cloud account. A full kind cluster is optional and has not been created.
 
 ### Before installation, 17 October 2026 (historical)
 
-The earlier audit found Temporal CLI and modern kubectl missing, older gopls/Delve versions, and only legacy Intel envtest binaries. The follow-up initially could not inspect Podman's lockfile inside the sandbox. Installation and service setup were subsequently explicitly authorized and performed with elevated access. The table below reflects the resulting state; lab/ still contains only its placeholder.
+The earlier audit found Temporal CLI and modern kubectl missing, older gopls/Delve versions, and only legacy Intel envtest binaries. The follow-up initially could not inspect Podman's lockfile inside the sandbox. Installation and service setup were subsequently explicitly authorized and performed with elevated access. The lab was still a placeholder at that historical check; its current implementation is described in PROGRESS.md.
 
 ## Machine
 
@@ -31,13 +31,13 @@ The earlier audit found Temporal CLI and modern kubectl missing, older gopls/Del
 | Podman | Client/server 6.1.4; Podman Desktop installed | New infrastructure-tutorial VM running; linux/arm64 guest; disposable hello-world container succeeded. |
 | Helm | 4.3.1 | Version command succeeded; not required for the first exercises. |
 | kubectl | Installed 1.37.1 at /opt/homebrew/bin/kubectl | Client version command succeeds; native arm64. No Kubernetes API server/cluster created yet. |
-| envtest assets | Legacy Intel binaries only in the standard legacy location | kube-apiserver 1.19.2 and etcd 3.4.9; unsuitable as the planned modern lab assets. No setup-envtest on checked PATH. Project-local assets are not provisioned yet. |
+| envtest assets | Native Kubernetes 1.37.0 in lab/bin/k8s/1.37.0-darwin-arm64 (18 October) | kube-apiserver and etcd are Mach-O arm64; real API-server lifecycle tests passed. Makefile pins setup-envtest. Legacy Intel 1.19.2 / etcd 3.4.9 assets were left untouched and are not used. |
 | Temporal CLI | Installed 1.9.1 at /opt/homebrew/bin/temporal; embedded server 1.32.0, UI 2.54.1 | Native arm64; local service health SERVING, default namespace registered, web UI HTTP 200. |
-| Go dependency access | proxy.golang.org reachable | HEAD request to Temporal SDK version list returned HTTP 200; project dependency resolution has not been exercised. |
+| Go dependency access | Module downloads succeeded on 18–19 October | controller-runtime, Kubernetes libraries, pinned generation/envtest tools, and Temporal SDK v1.50.0 downloaded and compiled. Combined race-detector suite passed. |
 
 Docker, Minikube, and Colima were not found on the checked PATH. They are not additional requirements for the proposed route: use the existing Podman installation if choosing kind, and use Temporal CLI for the local Temporal service.
 
-The lab module is now initialized with Go 1.27.2 and uses only the standard library. Project libraries (Temporal SDK, controller-runtime, Kubernetes API packages, errgroup) should be added and pinned in lab/go.mod when introduced in a lesson. They are module dependencies, not globally installed applications; compatibility with those external dependencies remains to be checked then.
+The lab module uses Go 1.27.2. Its checker/provider code uses the standard library; the Kubernetes adapter pins controller-runtime v0.25.1 and Kubernetes libraries v0.37.0 in lab/go.mod, with go.sum tracked alongside it. Temporal SDK v1.50.0 (API dependency v1.63.5) was added for the reservation workflow. Controller-gen v0.23.0 and a pinned setup-envtest revision are installed only in ignored lab/bin. Native envtest 1.37.0 matches the libraries' minor version; a 1.37.1 darwin/arm64 archive was not available. Direct use of errgroup remains deferred until its lesson.
 
 ## Verification evidence
 
@@ -57,7 +57,7 @@ Temporal runs as a detached local process, bound to 127.0.0.1:7233 with UI on 12
 
 ## Service controls and remaining setup
 
-### 18 October 2026 - Lab checkpoint
+### 18 October 2026 - Lab checkpoint before Kubernetes adapter (historical)
 
 The lab still uses only the standard library. Sequential/concurrent checkers,
 simulated health endpoints, allocation reconciliation, and owner-scoped cleanup
@@ -68,6 +68,66 @@ installed today. Temporal/Podman availability was not rechecked; their last
 verified service state below is from 17 October. Native envtest assets,
 controller-runtime/Kubernetes libraries, CRDs, and a running controller remain
 for the next scaffold. The allocation simulator has no persistent storage.
+
+### 18 October 2026 - Kubernetes adapter setup
+
+Added the typed GPUCluster resource/CRD and controller adapter. The Makefile
+generates deepcopy/CRD files and obtains native Kubernetes 1.37.0 assets.
+make test passed with integration tag, race detector, and a temporary loopback
+API server/etcd; the tests stopped that control plane afterwards. There is no
+manager/watch loop, persistent Kubernetes API server, or kind cluster. The
+provider remains in memory. Temporal/Podman were not rechecked or changed.
+
+The active xcode-select path is /Applications/Xcode.app/Contents/Developer;
+make now prompts for Xcode license acceptance. The existing Command Line Tools
+work with a per-command setting, verified with make, clang, generation, and the
+full race-detector test suite:
+
+```sh
+cd ~/dev/go-kubernetes-infrastructure-tutorial/lab
+export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/go/bin:$PATH"
+DEVELOPER_DIR=/Library/Developer/CommandLineTools make test
+```
+
+No global xcode-select setting, shell configuration, or license acceptance was
+changed. make unit excludes the API-server integration tests; make test is the
+complete current check. Tool and test-asset downloads stay under ignored lab/bin.
+
+### 19 October 2026 - Conditions verification
+
+Rechecked Homebrew Go: 1.27.2 darwin/arm64. The complete make test suite passed
+with the integration tag and race detector after adding allocation conditions.
+Reused the existing native 1.37.0 envtest assets and pinned tools, with the
+per-command Command Line Tools setting above. No dependencies, persistent
+services, cluster, kubeconfig, or global environment settings changed.
+Temporal/Podman availability was not rechecked.
+
+### 19 October 2026 - Manager/watch verification
+
+The complete make test suite passed again with the race detector after adding
+GPUCluster watch registration and configurable successful-check requeues
+(default 30 seconds). One integration test now starts a real controller-runtime
+manager against envtest, restricted to a separate test namespace. API creation,
+status repair, and deletion/cleanup occur without manual Reconcile calls.
+The test disables metrics/probes, cancels and joins the manager, then stops
+the test API server. No standalone executable or persistent controller was
+started; no kind cluster or kubeconfig changes. Existing dependency versions,
+native test assets, and per-command toolchain settings were reused.
+
+### 19 October 2026 - Temporal SDK verification
+
+Added go.temporal.io/sdk v1.50.0 for a reservation-only workflow/activity and
+in-process tests. Its Go 1.26 minimum is satisfied by the existing 1.27.2
+toolchain. The SDK's module graph raises shared dependencies, including
+golang.org/x/net v0.58.0, x/text v0.41.0, and grpc v1.83.2. The complete
+make test suite passed with Kubernetes/envtest and the race detector after
+these changes, using the same native assets and Command Line Tools setting.
+
+The SDK suite skips retry delays and tests real activity retries against the
+same in-memory provider. No Temporal service/worker was started or health
+rechecked; these tests do not establish server compatibility, persisted-history
+replay, or actual worker-restart recovery. No global settings, kubeconfig, or
+Podman changes. make unit includes the SDK tests without an API server.
 
 ### Local service controls (last verified 17 October)
 
@@ -89,7 +149,7 @@ kubectl version --client
 
 Choose a client within one Kubernetes minor version of the eventual cluster. Do not add the legacy Kubernetes 1.19 asset directory to PATH to fill this gap.
 
-For envtest, choose versions with the controller module, then use the generated Makefile's `make envtest` / `make test` targets to obtain matching native assets. See [Kubebuilder envtest documentation](https://book.kubebuilder.io/reference/envtest). The test plane includes the API server and etcd; it does not run the full cluster or built-in controllers. Do not point KUBEBUILDER_ASSETS at the old Intel binaries.
+For envtest, the lab Makefile now pins versions and provides make envtest / make test to obtain matching native assets. See [Kubebuilder envtest documentation](https://book.kubebuilder.io/reference/envtest). The test plane includes the API server and etcd; it does not run the full cluster or built-in controllers. Do not point KUBEBUILDER_ASSETS at the old Intel binaries.
 
 Podman was running at the 17 October verification. From a regular terminal, stop/start it with:
 

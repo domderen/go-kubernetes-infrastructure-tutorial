@@ -18,9 +18,17 @@ Official documentation for the curriculum in [guide.txt](guide.txt). Check the d
 - [Kubebuilder good practices](https://book.kubebuilder.io/reference/good-practices)
 - [Controller implementation walkthrough](https://book.kubebuilder.io/cronjob-tutorial/controller-implementation)
 - [Finalizers](https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/)
+- [Object spec and status](https://kubernetes.io/docs/concepts/overview/working-with-objects/#object-spec-and-status)
+- [Custom-resource status subresource and generation](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#status-subresource)
+- [Standard Condition fields (pinned Kubernetes library)](https://github.com/kubernetes/apimachinery/blob/v0.37.0/pkg/apis/meta/v1/types.go#L1507)
+- [Condition update helper](https://github.com/kubernetes/apimachinery/blob/v0.37.0/pkg/api/meta/conditions.go)
+- [Controller watch registration](https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.25.1/pkg/builder#TypedBuilder.For)
+- [Reconciliation requests, retries, and scheduled requeues](https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.25.1/pkg/reconcile#TypedReconciler)
+- [Controller manager](https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.25.1/pkg/manager#Manager)
 
 ## Module 3: Temporal
 
+- [Pinned Go SDK v1.50.0 release](https://github.com/temporalio/sdk-go/releases/tag/v1.50.0)
 - [Go workflow basics](https://docs.temporal.io/develop/go/workflows/basics)
 - [Activity definition](https://docs.temporal.io/activity-definition)
 - [Activity timeouts and heartbeats](https://docs.temporal.io/develop/go/activities/timeouts)
