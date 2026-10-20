@@ -1,5 +1,10 @@
 # First Kubernetes adapter
 
+This document describes the retained allocation-only teaching adapter. The
+running system uses [provisioning_controller.go](provisioning_controller.go) and
+[the Temporal adapter](provisioning_temporal.go); see [the live lab](../LIVE.md)
+for its ownership, persistent workflow identity, status, and deletion behavior.
+
 This increment wraps the existing `lab.ReconcileHosts` and
 `SimulatedAllocator.ReleaseHosts` in a controller-runtime `Reconcile` method.
 The tests install our CRD in a temporary API server and etcd. Most invoke the
@@ -10,8 +15,9 @@ Read these files in order:
 
 1. [The API types](../api/v1alpha1/gpucluster_types.go): `spec.nodeCount`
    requests 0–100 allocations. It is immutable in this increment; a later
-   lesson will introduce a spec-change policy. GPU class and location are
-   also deferred. Status reports allocated host IDs/slots and the generation
+   lesson will introduce a spec-change policy. This adapter uses nodeCount;
+   the added image/GPU/concurrency fields belong to the integrated controller.
+   Status reports allocated host IDs/slots and the generation
    observed, plus allocation conditions; allocation does not imply health or readiness.
 2. [The controller](gpucluster_controller.go): begin with the deletion branch.
 3. [The lifecycle tests](gpucluster_controller_test.go): examine the failed

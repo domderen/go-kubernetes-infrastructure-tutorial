@@ -1,0 +1,933 @@
+{
+  "events": [
+    {
+      "eventId": "1",
+      "eventTime": "2026-10-20T09:27:25.316417Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "taskId": "1049291",
+      "workflowExecutionStartedEventAttributes": {
+        "workflowType": {
+          "name": "ProvisionCluster"
+        },
+        "taskQueue": {
+          "name": "infrastructure-tutorial",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJjbHVzdGVyVUlEIjoiZmFjMTJjNWItMjlmNi00N2M5LTk1OGItMWVjZWE2NTU2M2RhIiwibm9kZUNvdW50IjoyLCJvcGVyYXRpb25JRCI6ImdwdWNsdXN0ZXIvZmFjMTJjNWItMjlmNi00N2M5LTk1OGItMWVjZWE2NTU2M2RhL2dlbmVyYXRpb24vMSIsImltYWdlVmVyc2lvbiI6Im9zLXYxIiwiZ3B1Q2xhc3MiOiJtb2NrLWExMDAiLCJtYXhQYXJhbGxlbCI6Mn0="
+            }
+          ]
+        },
+        "workflowExecutionTimeout": "0s",
+        "workflowRunTimeout": "0s",
+        "workflowTaskTimeout": "10s",
+        "originalExecutionRunId": "01a158a3-1584-7659-8613-9b1e89ae64b9",
+        "identity": "tutorial-fixture-worker",
+        "firstExecutionRunId": "01a158a3-1584-7659-8613-9b1e89ae64b9",
+        "attempt": 1,
+        "firstWorkflowTaskBackoff": "0s",
+        "header": {},
+        "workflowId": "gpucluster/fac12c5b-29f6-47c9-958b-1ecea65563da/generation/1"
+      }
+    },
+    {
+      "eventId": "2",
+      "eventTime": "2026-10-20T09:27:25.316488Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1049292",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "infrastructure-tutorial",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "3",
+      "eventTime": "2026-10-20T09:27:25.319895Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1049297",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "2",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "df334161-e414-42c7-ac18-fbb727ae100a",
+        "historySizeBytes": "554",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "4",
+      "eventTime": "2026-10-20T09:27:25.326691Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1049302",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "2",
+        "startedEventId": "3",
+        "identity": "tutorial-fixture-worker",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        },
+        "sdkMetadata": {
+          "langUsedFlags": [
+            3
+          ],
+          "sdkName": "temporal-go",
+          "sdkVersion": "1.50.0"
+        },
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "5",
+      "eventTime": "2026-10-20T09:27:25.326739Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "1049303",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "5",
+        "activityType": {
+          "name": "ReserveHosts"
+        },
+        "taskQueue": {
+          "name": "infrastructure-tutorial",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header": {},
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJjbHVzdGVyVUlEIjoiZmFjMTJjNWItMjlmNi00N2M5LTk1OGItMWVjZWE2NTU2M2RhIiwibm9kZUNvdW50IjoyLCJvcGVyYXRpb25JRCI6ImdwdWNsdXN0ZXIvZmFjMTJjNWItMjlmNi00N2M5LTk1OGItMWVjZWE2NTU2M2RhL2dlbmVyYXRpb24vMSIsImltYWdlVmVyc2lvbiI6Im9zLXYxIiwiZ3B1Q2xhc3MiOiJtb2NrLWExMDAiLCJtYXhQYXJhbGxlbCI6Mn0="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "30s",
+        "scheduleToStartTimeout": "30s",
+        "startToCloseTimeout": "5s",
+        "heartbeatTimeout": "0s",
+        "workflowTaskCompletedEventId": "4",
+        "retryPolicy": {
+          "initialInterval": "0.100s",
+          "backoffCoefficient": 2,
+          "maximumInterval": "1s",
+          "maximumAttempts": 3
+        },
+        "useWorkflowBuildId": true
+      }
+    },
+    {
+      "eventId": "6",
+      "eventTime": "2026-10-20T09:27:25.326763Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "1049307",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "5",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "6db68874-401f-47de-a0bc-2172ccaaec21",
+        "attempt": 1,
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "7",
+      "eventTime": "2026-10-20T09:27:25.343409Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId": "1049308",
+      "activityTaskCompletedEventAttributes": {
+        "result": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "W3siSUQiOiJob3N0LTAwNiIsIk93bmVyVUlEIjoiZmFjMTJjNWItMjlmNi00N2M5LTk1OGItMWVjZWE2NTU2M2RhIiwiU2xvdCI6MX0seyJJRCI6Imhvc3QtMDA3IiwiT3duZXJVSUQiOiJmYWMxMmM1Yi0yOWY2LTQ3YzktOTU4Yi0xZWNlYTY1NTYzZGEiLCJTbG90IjoyfV0="
+            }
+          ]
+        },
+        "scheduledEventId": "5",
+        "startedEventId": "6",
+        "identity": "tutorial-fixture-worker"
+      }
+    },
+    {
+      "eventId": "8",
+      "eventTime": "2026-10-20T09:27:25.343420Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1049309",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "MacBook-Air:0aa7845d-5773-4fec-b479-bf5fb6613e41",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "infrastructure-tutorial"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "9",
+      "eventTime": "2026-10-20T09:27:25.350877Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1049313",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "8",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "f056ed91-9354-457f-8303-cb99b976bbbb",
+        "historySizeBytes": "1629",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "10",
+      "eventTime": "2026-10-20T09:27:25.354780Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1049319",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "8",
+        "startedEventId": "9",
+        "identity": "tutorial-fixture-worker",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "11",
+      "eventTime": "2026-10-20T09:27:25.355191Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "1049320",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "11",
+        "activityType": {
+          "name": "EnsureImage"
+        },
+        "taskQueue": {
+          "name": "infrastructure-tutorial",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header": {},
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJPd25lclVJRCI6ImZhYzEyYzViLTI5ZjYtNDdjOS05NThiLTFlY2VhNjU1NjNkYSIsIk9wZXJhdGlvbklEIjoiZ3B1Y2x1c3Rlci9mYWMxMmM1Yi0yOWY2LTQ3YzktOTU4Yi0xZWNlYTY1NTYzZGEvZ2VuZXJhdGlvbi8xL2ltYWdlLzEiLCJIb3N0SUQiOiJob3N0LTAwNiIsIkltYWdlVmVyc2lvbiI6Im9zLXYxIn0="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "3600s",
+        "scheduleToStartTimeout": "3600s",
+        "startToCloseTimeout": "1800s",
+        "heartbeatTimeout": "30s",
+        "workflowTaskCompletedEventId": "10",
+        "retryPolicy": {
+          "initialInterval": "0.100s",
+          "backoffCoefficient": 2,
+          "maximumInterval": "1s",
+          "maximumAttempts": 3
+        },
+        "useWorkflowBuildId": true
+      }
+    },
+    {
+      "eventId": "12",
+      "eventTime": "2026-10-20T09:27:25.355227Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "1049321",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "12",
+        "activityType": {
+          "name": "EnsureImage"
+        },
+        "taskQueue": {
+          "name": "infrastructure-tutorial",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header": {},
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJPd25lclVJRCI6ImZhYzEyYzViLTI5ZjYtNDdjOS05NThiLTFlY2VhNjU1NjNkYSIsIk9wZXJhdGlvbklEIjoiZ3B1Y2x1c3Rlci9mYWMxMmM1Yi0yOWY2LTQ3YzktOTU4Yi0xZWNlYTY1NTYzZGEvZ2VuZXJhdGlvbi8xL2ltYWdlLzIiLCJIb3N0SUQiOiJob3N0LTAwNyIsIkltYWdlVmVyc2lvbiI6Im9zLXYxIn0="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "3600s",
+        "scheduleToStartTimeout": "3600s",
+        "startToCloseTimeout": "1800s",
+        "heartbeatTimeout": "30s",
+        "workflowTaskCompletedEventId": "10",
+        "retryPolicy": {
+          "initialInterval": "0.100s",
+          "backoffCoefficient": 2,
+          "maximumInterval": "1s",
+          "maximumAttempts": 3
+        },
+        "useWorkflowBuildId": true
+      }
+    },
+    {
+      "eventId": "13",
+      "eventTime": "2026-10-20T09:27:56.361505Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "1049337",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "12",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "612a9110-67b2-43da-b8ee-64f31b39a78a",
+        "attempt": 2,
+        "lastFailure": {
+          "message": "activity Heartbeat timeout",
+          "source": "Server",
+          "timeoutFailureInfo": {
+            "timeoutType": "TIMEOUT_TYPE_HEARTBEAT"
+          }
+        },
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "14",
+      "eventTime": "2026-10-20T09:27:56.373851Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId": "1049338",
+      "activityTaskCompletedEventAttributes": {
+        "result": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJJRCI6ImltYWdlLTAwNiIsIlJlcXVlc3QiOnsiT3duZXJVSUQiOiJmYWMxMmM1Yi0yOWY2LTQ3YzktOTU4Yi0xZWNlYTY1NTYzZGEiLCJPcGVyYXRpb25JRCI6ImdwdWNsdXN0ZXIvZmFjMTJjNWItMjlmNi00N2M5LTk1OGItMWVjZWE2NTU2M2RhL2dlbmVyYXRpb24vMS9pbWFnZS8yIiwiSG9zdElEIjoiaG9zdC0wMDciLCJJbWFnZVZlcnNpb24iOiJvcy12MSJ9LCJEb25lIjp0cnVlfQ=="
+            }
+          ]
+        },
+        "scheduledEventId": "12",
+        "startedEventId": "13",
+        "identity": "tutorial-fixture-worker"
+      }
+    },
+    {
+      "eventId": "15",
+      "eventTime": "2026-10-20T09:27:56.373861Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1049339",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "MacBook-Air:0aa7845d-5773-4fec-b479-bf5fb6613e41",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "infrastructure-tutorial"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "16",
+      "eventTime": "2026-10-20T09:27:56.378619Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1049343",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "15",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "26a2046e-3141-4ec6-bd1f-f7c4da865b09",
+        "historySizeBytes": "3104",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "17",
+      "eventTime": "2026-10-20T09:27:56.384311Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1049348",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "15",
+        "startedEventId": "16",
+        "identity": "tutorial-fixture-worker",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        },
+        "sdkMetadata": {
+          "sdkName": "temporal-go",
+          "sdkVersion": "1.50.0"
+        },
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "18",
+      "eventTime": "2026-10-20T09:27:56.384340Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "1049349",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "18",
+        "activityType": {
+          "name": "JoinCluster"
+        },
+        "taskQueue": {
+          "name": "infrastructure-tutorial",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header": {},
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJPd25lclVJRCI6ImZhYzEyYzViLTI5ZjYtNDdjOS05NThiLTFlY2VhNjU1NjNkYSIsIk9wZXJhdGlvbklEIjoiZ3B1Y2x1c3Rlci9mYWMxMmM1Yi0yOWY2LTQ3YzktOTU4Yi0xZWNlYTY1NTYzZGEvZ2VuZXJhdGlvbi8xL2pvaW4vMiIsIkhvc3RJRCI6Imhvc3QtMDA3IiwiR1BVQ2xhc3MiOiJtb2NrLWExMDAifQ=="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "30s",
+        "scheduleToStartTimeout": "30s",
+        "startToCloseTimeout": "5s",
+        "heartbeatTimeout": "0s",
+        "workflowTaskCompletedEventId": "17",
+        "retryPolicy": {
+          "initialInterval": "0.100s",
+          "backoffCoefficient": 2,
+          "maximumInterval": "1s",
+          "maximumAttempts": 3
+        },
+        "useWorkflowBuildId": true
+      }
+    },
+    {
+      "eventId": "19",
+      "eventTime": "2026-10-20T09:27:56.384356Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "1049352",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "18",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "328d0351-8ad8-48ac-a51a-54eb4a0374d8",
+        "attempt": 1,
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "20",
+      "eventTime": "2026-10-20T09:27:56.391559Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId": "1049353",
+      "activityTaskCompletedEventAttributes": {
+        "scheduledEventId": "18",
+        "startedEventId": "19",
+        "identity": "tutorial-fixture-worker"
+      }
+    },
+    {
+      "eventId": "21",
+      "eventTime": "2026-10-20T09:27:56.391569Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1049354",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "MacBook-Air:3641846b-22a3-46fa-9f99-18ceb4f34de5",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "infrastructure-tutorial"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "22",
+      "eventTime": "2026-10-20T09:27:56.395408Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1049358",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "21",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "20280761-be24-4134-8507-9b27636c9056",
+        "historySizeBytes": "3958",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "23",
+      "eventTime": "2026-10-20T09:27:56.398554Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1049363",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "21",
+        "startedEventId": "22",
+        "identity": "tutorial-fixture-worker",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "24",
+      "eventTime": "2026-10-20T09:27:56.398581Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "1049364",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "24",
+        "activityType": {
+          "name": "ValidateGPU"
+        },
+        "taskQueue": {
+          "name": "infrastructure-tutorial",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header": {},
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJPd25lclVJRCI6ImZhYzEyYzViLTI5ZjYtNDdjOS05NThiLTFlY2VhNjU1NjNkYSIsIk9wZXJhdGlvbklEIjoiZ3B1Y2x1c3Rlci9mYWMxMmM1Yi0yOWY2LTQ3YzktOTU4Yi0xZWNlYTY1NTYzZGEvZ2VuZXJhdGlvbi8xL3ZhbGlkYXRlLzIiLCJIb3N0SUQiOiJob3N0LTAwNyIsIkdQVUNsYXNzIjoibW9jay1hMTAwIn0="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "30s",
+        "scheduleToStartTimeout": "30s",
+        "startToCloseTimeout": "5s",
+        "heartbeatTimeout": "0s",
+        "workflowTaskCompletedEventId": "23",
+        "retryPolicy": {
+          "initialInterval": "0.100s",
+          "backoffCoefficient": 2,
+          "maximumInterval": "1s",
+          "maximumAttempts": 3
+        },
+        "useWorkflowBuildId": true
+      }
+    },
+    {
+      "eventId": "25",
+      "eventTime": "2026-10-20T09:27:56.398596Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "1049367",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "24",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "bfeee12a-1c3a-4e98-abaa-c6cacf11716a",
+        "attempt": 1,
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "26",
+      "eventTime": "2026-10-20T09:27:56.405380Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId": "1049368",
+      "activityTaskCompletedEventAttributes": {
+        "scheduledEventId": "24",
+        "startedEventId": "25",
+        "identity": "tutorial-fixture-worker"
+      }
+    },
+    {
+      "eventId": "27",
+      "eventTime": "2026-10-20T09:27:56.405385Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1049369",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "MacBook-Air:3641846b-22a3-46fa-9f99-18ceb4f34de5",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "infrastructure-tutorial"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "28",
+      "eventTime": "2026-10-20T09:27:56.408027Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1049373",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "27",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "e7d0fca4-ce59-4d9f-8ae7-a19903f42614",
+        "historySizeBytes": "4795",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "29",
+      "eventTime": "2026-10-20T09:27:56.410979Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1049377",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "27",
+        "startedEventId": "28",
+        "identity": "tutorial-fixture-worker",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "30",
+      "eventTime": "2026-10-20T09:27:57.361304Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "1049383",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "11",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "2318ffd0-7934-4b03-9a4c-5da451c7d900",
+        "attempt": 2,
+        "lastFailure": {
+          "message": "activity Heartbeat timeout",
+          "source": "Server",
+          "timeoutFailureInfo": {
+            "timeoutType": "TIMEOUT_TYPE_HEARTBEAT"
+          }
+        },
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "31",
+      "eventTime": "2026-10-20T09:27:57.380176Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId": "1049384",
+      "activityTaskCompletedEventAttributes": {
+        "result": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJJRCI6ImltYWdlLTAwNyIsIlJlcXVlc3QiOnsiT3duZXJVSUQiOiJmYWMxMmM1Yi0yOWY2LTQ3YzktOTU4Yi0xZWNlYTY1NTYzZGEiLCJPcGVyYXRpb25JRCI6ImdwdWNsdXN0ZXIvZmFjMTJjNWItMjlmNi00N2M5LTk1OGItMWVjZWE2NTU2M2RhL2dlbmVyYXRpb24vMS9pbWFnZS8xIiwiSG9zdElEIjoiaG9zdC0wMDYiLCJJbWFnZVZlcnNpb24iOiJvcy12MSJ9LCJEb25lIjp0cnVlfQ=="
+            }
+          ]
+        },
+        "scheduledEventId": "11",
+        "startedEventId": "30",
+        "identity": "tutorial-fixture-worker"
+      }
+    },
+    {
+      "eventId": "32",
+      "eventTime": "2026-10-20T09:27:57.380191Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1049385",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "MacBook-Air:3641846b-22a3-46fa-9f99-18ceb4f34de5",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "infrastructure-tutorial"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "33",
+      "eventTime": "2026-10-20T09:27:57.383555Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1049389",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "32",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "62c53dfa-6b7a-4996-9b53-7dd3c3ea2012",
+        "historySizeBytes": "5596",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "34",
+      "eventTime": "2026-10-20T09:27:57.388552Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1049394",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "32",
+        "startedEventId": "33",
+        "identity": "tutorial-fixture-worker",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "35",
+      "eventTime": "2026-10-20T09:27:57.388607Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "1049395",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "35",
+        "activityType": {
+          "name": "JoinCluster"
+        },
+        "taskQueue": {
+          "name": "infrastructure-tutorial",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header": {},
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJPd25lclVJRCI6ImZhYzEyYzViLTI5ZjYtNDdjOS05NThiLTFlY2VhNjU1NjNkYSIsIk9wZXJhdGlvbklEIjoiZ3B1Y2x1c3Rlci9mYWMxMmM1Yi0yOWY2LTQ3YzktOTU4Yi0xZWNlYTY1NTYzZGEvZ2VuZXJhdGlvbi8xL2pvaW4vMSIsIkhvc3RJRCI6Imhvc3QtMDA2IiwiR1BVQ2xhc3MiOiJtb2NrLWExMDAifQ=="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "30s",
+        "scheduleToStartTimeout": "30s",
+        "startToCloseTimeout": "5s",
+        "heartbeatTimeout": "0s",
+        "workflowTaskCompletedEventId": "34",
+        "retryPolicy": {
+          "initialInterval": "0.100s",
+          "backoffCoefficient": 2,
+          "maximumInterval": "1s",
+          "maximumAttempts": 3
+        },
+        "useWorkflowBuildId": true
+      }
+    },
+    {
+      "eventId": "36",
+      "eventTime": "2026-10-20T09:27:57.388639Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "1049398",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "35",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "8bfffa31-af35-494f-b172-0423fddabb29",
+        "attempt": 1,
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "37",
+      "eventTime": "2026-10-20T09:27:57.397612Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId": "1049399",
+      "activityTaskCompletedEventAttributes": {
+        "scheduledEventId": "35",
+        "startedEventId": "36",
+        "identity": "tutorial-fixture-worker"
+      }
+    },
+    {
+      "eventId": "38",
+      "eventTime": "2026-10-20T09:27:57.397626Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1049400",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "MacBook-Air:3641846b-22a3-46fa-9f99-18ceb4f34de5",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "infrastructure-tutorial"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "39",
+      "eventTime": "2026-10-20T09:27:57.400987Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1049404",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "38",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "384b1973-299d-4602-93b9-c2a06dc0b448",
+        "historySizeBytes": "6429",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "40",
+      "eventTime": "2026-10-20T09:27:57.405025Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1049409",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "38",
+        "startedEventId": "39",
+        "identity": "tutorial-fixture-worker",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "41",
+      "eventTime": "2026-10-20T09:27:57.405074Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "1049410",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "41",
+        "activityType": {
+          "name": "ValidateGPU"
+        },
+        "taskQueue": {
+          "name": "infrastructure-tutorial",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header": {},
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJPd25lclVJRCI6ImZhYzEyYzViLTI5ZjYtNDdjOS05NThiLTFlY2VhNjU1NjNkYSIsIk9wZXJhdGlvbklEIjoiZ3B1Y2x1c3Rlci9mYWMxMmM1Yi0yOWY2LTQ3YzktOTU4Yi0xZWNlYTY1NTYzZGEvZ2VuZXJhdGlvbi8xL3ZhbGlkYXRlLzEiLCJIb3N0SUQiOiJob3N0LTAwNiIsIkdQVUNsYXNzIjoibW9jay1hMTAwIn0="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "30s",
+        "scheduleToStartTimeout": "30s",
+        "startToCloseTimeout": "5s",
+        "heartbeatTimeout": "0s",
+        "workflowTaskCompletedEventId": "40",
+        "retryPolicy": {
+          "initialInterval": "0.100s",
+          "backoffCoefficient": 2,
+          "maximumInterval": "1s",
+          "maximumAttempts": 3
+        },
+        "useWorkflowBuildId": true
+      }
+    },
+    {
+      "eventId": "42",
+      "eventTime": "2026-10-20T09:27:57.405101Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "1049413",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "41",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "d4f53a22-7788-4174-8d3e-1b8472b7bec5",
+        "attempt": 1,
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "43",
+      "eventTime": "2026-10-20T09:27:57.414607Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId": "1049414",
+      "activityTaskCompletedEventAttributes": {
+        "scheduledEventId": "41",
+        "startedEventId": "42",
+        "identity": "tutorial-fixture-worker"
+      }
+    },
+    {
+      "eventId": "44",
+      "eventTime": "2026-10-20T09:27:57.414623Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1049415",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "MacBook-Air:3641846b-22a3-46fa-9f99-18ceb4f34de5",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "infrastructure-tutorial"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "45",
+      "eventTime": "2026-10-20T09:27:57.418500Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1049419",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "44",
+        "identity": "tutorial-fixture-worker",
+        "requestId": "60e50407-ac4b-4807-924e-28c4d451a368",
+        "historySizeBytes": "7266",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        }
+      }
+    },
+    {
+      "eventId": "46",
+      "eventTime": "2026-10-20T09:27:57.422071Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1049423",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "44",
+        "startedEventId": "45",
+        "identity": "tutorial-fixture-worker",
+        "workerVersion": {
+          "buildId": "c22febc5d478f4eb7d3fa79c0dc2484c"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "47",
+      "eventTime": "2026-10-20T09:27:57.422112Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED",
+      "taskId": "1049424",
+      "workflowExecutionCompletedEventAttributes": {
+        "result": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "W3siSUQiOiJob3N0LTAwNiIsIk93bmVyVUlEIjoiZmFjMTJjNWItMjlmNi00N2M5LTk1OGItMWVjZWE2NTU2M2RhIiwiU2xvdCI6MX0seyJJRCI6Imhvc3QtMDA3IiwiT3duZXJVSUQiOiJmYWMxMmM1Yi0yOWY2LTQ3YzktOTU4Yi0xZWNlYTY1NTYzZGEiLCJTbG90IjoyfV0="
+            }
+          ]
+        },
+        "workflowTaskCompletedEventId": "46"
+      }
+    }
+  ]
+}

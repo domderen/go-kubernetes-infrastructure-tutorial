@@ -1,166 +1,164 @@
-# Temporal reservation workflow and imaging activity
+# Temporal provisioning lifecycle
 
-ProvisionCluster currently runs one ReserveHosts activity and returns allocations.
-The next EnsureImage activity is implemented and tested separately; it is not
-yet part of that workflow. It observes a simulated provider job, with polling,
-heartbeats, and cooperative cancellation. Real imaging, joining, GPU validation,
-compensation, and controller integration are later increments. Kubernetes
-reconciliation still calls allocation logic directly; the SDK tests use their
-own provider instances.
+`ProvisionCluster` runs `ReserveHosts`, then a bounded number of host pipelines:
 
-Read [workflow.go](workflow.go), [activities.go](activities.go), then the first
-test in [workflow_test.go](workflow_test.go).
-Then read the polling loop in [imaging.go](imaging.go).
+```text
+EnsureImage → JoinCluster → ValidateGPU
+```
+
+It returns the reserved allocations after every pipeline succeeds. Joining and
+GPU validation are simulated provider actions; this workflow does not install
+drivers or create Kubernetes Nodes. The executable controller projects the
+workflow outcome into GPUCluster status. The allocation-only controller remains
+available as an earlier comparison.
+
+Read [workflow.go](workflow.go), [activities.go](activities.go),
+[imaging.go](imaging.go), and [lifecycle.go](lifecycle.go). Tests in
+[workflow_test.go](workflow_test.go) preserve the original reservation/imaging
+failure cases; [lifecycle_test.go](lifecycle_test.go) covers the full lifecycle.
 
 ## Identity and ownership
 
-The workflow receives Request with ClusterUID and NodeCount. ClusterUID owns the
-provider allocations; the workflow carries that identity without replacing it
-with a workflow run ID or retry attempt number. ReserveHosts calls the existing
-ReconcileHosts business logic: discover owned hosts, then EnsureHost with stable
-`(ClusterUID, slot)` keys for missing slots. The provider atomically returns the
-same host for a repeated key, even if discovery misses it.
+`Request` carries `ClusterUID`, `NodeCount`, `OperationID`, `ImageVersion`,
+`GPUClass`, and `MaxParallel`. Missing operation/image intent or parallelism
+outside 1–10 fails before reservation. Zero parallelism defaults to one for
+earlier callers; the integrated Kubernetes API defaults to two. Empty GPUClass
+defaults to `mock-a100`; the mock provider also supports `mock-h100`.
+`ReserveHosts` validates UID and node count 0–100 at its activity boundary.
 
-Workflow code uses workflow.Context and SDK commands. The activity uses ordinary
-context.Context for provider I/O. The workflow itself does not query or mutate
-the provider. ReserveHosts is registered under the explicit activity name used
-in the workflow; the test helper shows that registration.
+ClusterUID owns allocations throughout the flow. It is never replaced by a
+workflow run ID or activity attempt. Reservation uses the existing
+`ReconcileHosts`: discover owned hosts, then atomically ensure missing
+`(ClusterUID, slot)` allocations. Stable ensures protect against duplicates even
+when a response is lost and discovery is stale.
 
-## Failure windows
+For the caller's `OperationID = revision-1`, slot 1 receives these operation IDs:
 
-If Temporal has durably recorded an activity's successful completion, replay
-uses its result without dispatching that completed activity again in the same
-workflow execution. Workflow code itself can still replay.
+| Step | Stable operation ID |
+| --- | --- |
+| Image | `revision-1/image/1` |
+| Join | `revision-1/join/1` |
+| Validate | `revision-1/validate/1` |
 
-If the provider performs the operation but activity completion is not recorded,
-an activity attempt can run again. Discovery helps, but the stable provider key
-is the duplicate-allocation protection. Temporal coordinates retries; the
-provider enforces idempotency at the side-effect boundary.
+Each step keeps the same owner, host, class/image parameters, and key on retry.
+The provider owns atomic request binding and deduplication. A new intent needs a
+new OperationID. Kubernetes generation/workflow identity is selected by the
+controller, outside this workflow.
 
-The test injects a lost provider response after creating the first host. The
-next discovery returns an empty list, forcing the retried activity to ensure
-the same cluster/slot again. It receives the original host and finishes with
-three logical allocations across two activity attempts.
+Workflow coroutines claim successive indices from the recorded reservation
+slice. SDK scheduling is deterministic; native goroutines, timers, mutexes,
+network calls, and provider state do not enter workflow code. Each worker waits
+for one host's complete pipeline before claiming another. `MaxParallel` bounds
+host pipelines within one workflow, including their retry waits; it is not a
+global provider/worker concurrency limit. Returned inventory retains the
+reservation's slice order, regardless of activity completion order.
 
-## Provider imaging job identity and status
+## Activity boundaries and retries
 
-[imaging.go](../imaging.go) adds EnsureImageJob to the same SimulatedAllocator.
-ImageRequest carries OwnerUID, OperationID, HostID, and ImageVersion. The caller
-chooses one operation ID before contacting the provider and retains it across
-retries, for example `image/host-001/revision-1`. This is separate from the job
-ID generated by the provider. It must identify one host/image request; retry
-attempt numbers must not become part of this identity.
+Activities use ordinary `context.Context` for provider I/O. Consumer interfaces
+live beside their activities: `ImageProvider` supplies image jobs and
+`LifecycleProvider` supplies JoinCluster, ValidateGPU, and owner-scoped
+ReleaseHosts. `Activities` continues to consume `lab.HostAllocator`.
 
-The provider atomically maps `(OwnerUID, OperationID)` to one ImageJob. Repeating
-the same request recovers that job without a prior job ID or heartbeat. Changing
-the host or image version under an existing valid key returns
-ErrImageRequestConflict instead of silently treating different work as complete.
-Owner UID scopes the key, and the host must currently belong to that owner.
-The shared allocator mutex serializes this check and job creation with cleanup;
-a closed UID rejects both old retries and new imaging requests.
+EnsureImage calls `EnsureImageJob` on every attempt using the same request. It
+records job/host heartbeat details after each provider observation, then polls
+until Done with a cancelable timer. PollInterval defaults to 1s. Heartbeats are
+observations, not a separate goroutine keeping a blocked provider call alive.
+Provider idempotency recovers the job even when no checkpoint was delivered.
 
-GetImageJob observes that record's Done flag. CompleteImageJob supplies an
-explicit simulated completion event; no imaging process runs. Completion is
-repeatable and may arrive even after owner cleanup. Closed owners reject
-activity polling and new ensures, while historical records remain in memory.
-Closing a UID does not cancel an already accepted external operation.
+Durably recorded activity completions are reused during replay. An unrecorded
+completion can cause another activity attempt: Temporal coordinates retries;
+the provider's stable key prevents duplicate side effects. Replaying the
+workflow is separate from executing a new activity observation.
 
-[imaging_test.go](../imaging_test.go) discards the original job ID and retries
-with only the request, recovering the same job. Twenty concurrent duplicates
-produce one job. Other tests cover changed parameters, owner/operation
-isolation, invalid/canceled/unowned requests, and late work after cleanup.
-Further tests cover repeatable completion, later retries seeing Done, scoped
-and canceled status calls, and completion arriving after cleanup.
-These are provider unit tests; they do not simulate SDK checkpoint delivery or
-a real worker crash. From lab/:
+The following teaching budgets apply separately to each activity execution:
 
-```sh
-go test -race -count=1 -timeout=10s -run '^(TestEnsureImageJob|TestImageJob)' .
+| Activities | StartToClose | ScheduleToClose | HeartbeatTimeout |
+| --- | --- | --- | --- |
+| ReserveHosts, JoinCluster, ValidateGPU, ReleaseHosts | 5s | 30s | none |
+| EnsureImage | 30m | 1h | 30s |
+
+All use at most three attempts, with 100ms initial retry delay, coefficient 2,
+and 1s maximum delay. All set `WaitForCancellation: true`. Short provider calls
+must honor their activity context; remote cancellation delivery for a
+non-heartbeating short activity may wait for its return or timeout.
+
+Invalid reservation inputs, released owners, unsupported scale-down, invalid or
+conflicting image requests, wrong ownership, unsupported GPU class, and terminal
+validation failure are non-retryable. Other provider errors use the bounded
+retry policy. A permanent error in one pipeline fails the cluster operation.
+
+## Failure, cancellation, and explicit compensation
+
+The first pipeline failure stops dispatch of later hosts and cancels sibling
+work. Workflow workers are joined before compensation. With
+WaitForCancellation enabled, real activity futures wait for acknowledgment or
+timeout; this does not forcibly stop external work that ignores cancellation.
+The original failure remains the workflow error rather than being replaced by
+a sibling's cancellation.
+
+After a valid reservation attempt, any failure or workflow cancellation
+explicitly runs `ReleaseHosts(ClusterUID)`. This also covers partially committed
+reservation attempts whose responses failed. Invalid requests that cannot reach
+the provider do not trigger release. A disconnected workflow context lets
+cleanup run after cancellation, using the bounded short-activity policy above.
+If cleanup also fails, the returned error retains the original cause and the
+cleanup failure message. A later controller deletion can retry cleanup.
+
+Release must be idempotent and close the owner UID before removing allocations.
+Controller deletion independently fences/releases the owner before requesting
+workflow cancellation. Delayed activity calls then fail with ErrOwnerReleased.
+Accepted image-job history remains uncertain external work: release does not
+undo or cancel an already accepted imaging operation. No database rollback or
+physical GPU cleanup is claimed.
+
+## Worker registration
+
+Register `ProvisionCluster` and every activity using its exported name constant:
+
+```go
+w.RegisterWorkflow(provisioning.ProvisionCluster)
+allocation := &provisioning.Activities{Provider: provider}
+imaging := &provisioning.ImagingActivities{Provider: provider}
+lifecycle := &provisioning.LifecycleActivities{Provider: provider}
+w.RegisterActivityWithOptions(allocation.ReserveHosts,
+    activity.RegisterOptions{Name: provisioning.ReserveHostsActivity})
+w.RegisterActivityWithOptions(imaging.EnsureImage,
+    activity.RegisterOptions{Name: provisioning.EnsureImageActivity})
+w.RegisterActivityWithOptions(lifecycle.JoinCluster,
+    activity.RegisterOptions{Name: provisioning.JoinClusterActivity})
+w.RegisterActivityWithOptions(lifecycle.ValidateGPU,
+    activity.RegisterOptions{Name: provisioning.ValidateGPUActivity})
+w.RegisterActivityWithOptions(lifecycle.ReleaseHosts,
+    activity.RegisterOptions{Name: provisioning.ReleaseHostsActivity})
 ```
 
-## EnsureImage activity
-
-[imaging.go](imaging.go) declares the ImageProvider interface at its consumer,
-then uses that interface in ImagingActivities.EnsureImage. Each attempt calls
-EnsureImageJob with the unchanged request. Provider idempotency is the recovery
-path whether or not a previous heartbeat reached Temporal; this increment does
-not read or trust a saved heartbeat as authoritative provider state.
-
-After each successful provider observation, the activity records an
-ImageCheckpoint containing JobID and HostID. It returns only when Done is true.
-Otherwise it waits for PollInterval (default 1s) with a timer selected alongside
-ctx.Done(), then calls GetImageJob with that same context. There is no separate
-heartbeat goroutine keeping a blocked provider observation looking responsive.
-Provider calls must cooperate with context cancellation; heartbeats report the
-activity's observations rather than proving the hardware is making progress.
-
-Invalid requests, conflicting operation parameters, wrong host ownership, and
-released owners produce non-retryable application errors. Other observation
-errors return to the caller's retry policy. Cancellation stops the activity's
-waiting/polling; the accepted provider job remains and may complete later.
-The current simulator models pending/success only; terminal imaging outcomes
-and compensating actions remain later steps.
-
-The workflow that schedules this activity must select attempt, overall, and
-heartbeat timeouts appropriate to its duration and polling/provider latency.
-The production ProvisionCluster still has only reservation settings. A
-test-only workflow supplies bounded settings and demonstrates a real SDK retry
-after a lost image-creation response, with no checkpoint emitted by that first
-attempt. Both attempts recover the same provider job.
-
-[imaging_test.go](imaging_test.go) also verifies completion after three reads,
-heartbeat job/host identity and repeated calls before SDK batching, cancellation
-during a one-hour poll wait and a blocked provider read, retryable observation
-errors, permanent request errors,
-and owner cleanup during polling. Context-cancellation fixtures use the SDK's
-cancellation cause; they do not run server cancellation RPCs. The SDK
-[distinguishes logical cancellation from worker-context shutdown](https://github.com/temporalio/sdk-go/blob/v1.50.0/internal/internal_task_handlers.go#L2491).
-
-## Teaching retry policy
-
-The reservation workflow chooses a 5-second StartToClose timeout per attempt, a 30-second
-ScheduleToClose budget across the activity execution, and at most 3 attempts
-including the initial one. Retry delays start at 100ms, double, and are capped
-at one second. These are small lab settings, not production sizing advice.
-
-Invalid requests (missing UID or count outside 0–100), released owners, and the
-currently unsupported scale-down operation produce non-retryable application
-errors. Transient provider failures are retried within the configured bounds.
-Exhausting retries does not roll back provider side effects; this increment
-does not release partial allocations or implement compensating cleanup.
+The names are `ReserveHosts`, `EnsureImage`, `JoinCluster`, `ValidateGPU`, and
+`ReleaseHosts`. See [cmd/worker](../cmd/worker/main.go) for executable wiring.
 
 ## Verification and limits
 
-SDK version: go.temporal.io/sdk v1.50.0, pinned in the lab module.
+From `lab/`, run `go test -race -count=1 -timeout=30s ./provisioning`.
+`make unit` includes these tests; `make test` adds Kubernetes/envtest integration.
+Use Homebrew Go and the environment settings in the workspace notes on this Mac.
 
-From lab/, run the SDK tests without a Temporal server:
+Tests use real workflows/activities and the in-memory allocator, with controlled
+provider completion/failure timing. They cover stable allocation/image/join
+retry keys, bounded complete host pipelines, lifecycle sequencing, terminal
+errors, partial reservation compensation, bounded cleanup failure, and
+cancellation after image jobs have started. Existing activity tests cover
+polling, heartbeat observations, provider context propagation, and image history
+after release.
 
-```sh
-go test -race -count=1 -timeout=10s ./provisioning
-```
+The [SDK v1.50.0 test environment](https://github.com/temporalio/sdk-go/blob/v1.50.0/internal/internal_workflow_testsuite.go#L1257)
+immediately resolves canceled activity futures
+without modeling real WaitForCancellation acknowledgment ordering. Cancellation
+tests therefore stop/join in-process fixtures separately; live server/history
+verification is required for actual cancellation delivery, worker restart,
+provider durability, heartbeat batching, and replay across process restart.
 
-`make unit` includes these tests along with the checker/provider tests.
-`make test` additionally runs the Kubernetes/envtest suite. On this Mac, select
-Homebrew Go on PATH and use the existing per-command Command Line Tools setting
-for make if needed; see the environment notes.
-
-Tests use real workflow/activity code and the real SimulatedAllocator, with
-faults only at provider responses. They cover lost response plus stale
-discovery, bounded transient retries, invalid input before provider I/O,
-rejection of late work for a released UID, and terminal scale-down rejection
-without changing existing inventory.
-
-The SDK suites run in-process. Workflow tests skip retry-delay time; activity
-poll waits use short real timers. These tests do not start a Temporal
-worker/service or prove persisted-history replay, real worker restart, server
-compatibility, heartbeat expiry/delivery/throttling, or provider durability.
-The heartbeat listener may see fewer reports than RecordHeartbeat calls because
-the SDK batches them; no per-call server-delivery guarantee is asserted. The
-same in-memory provider stays alive across attempts. Those limits will get
-separate integration exercises.
-
-Sources: [activity idempotency](https://docs.temporal.io/activity-definition#idempotency),
-[Go workflow basics](https://docs.temporal.io/develop/go/workflows/basics),
-[activity timeouts](https://docs.temporal.io/develop/go/activities/timeouts),
-[testing](https://docs.temporal.io/develop/go/best-practices/testing-suite), and
-[SDK v1.50.0](https://github.com/temporalio/sdk-go/releases/tag/v1.50.0).
+Sources: [workflow cancellation](https://docs.temporal.io/develop/go/workflows/cancellation),
+[activity idempotency](https://docs.temporal.io/activity-definition#idempotency),
+[workflow basics](https://docs.temporal.io/develop/go/workflows/basics),
+[activity timeouts](https://docs.temporal.io/develop/go/activities/timeouts), and
+[SDK testing](https://docs.temporal.io/develop/go/best-practices/testing-suite).

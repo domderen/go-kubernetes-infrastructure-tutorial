@@ -1,0 +1,10 @@
+apiVersion: infrastructure.tutorial.example.com/v1alpha1
+kind: GPUCluster
+metadata:
+  name: demo-gpu
+  namespace: infrastructure-tutorial
+spec:
+  nodeCount: 3
+  imageVersion: os-v1
+  gpuClass: mock-a100
+  maxParallel: 2

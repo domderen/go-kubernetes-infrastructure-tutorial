@@ -1,10 +1,20 @@
 # Environment audit
 
-Checked: 17 October 2026 tool/service audit; 18 October Go/Kubernetes adapter setup; 19 October manager/Temporal SDK tests, Europe/Warsaw. This is a snapshot, not a promise that services remain running across sessions.
+Checked: 17 October 2026 tool/service audit; 18–19 October adapter/SDK setup; 20 October complete live control plane, Europe/Warsaw. This is a snapshot, not a promise that services remain running across sessions.
 
 ## Readiness
 
-Ready for the current Go, Kubernetes adapter, and Temporal SDK tests. Pinned libraries and matching native envtest assets are installed; the combined make test suite passed on 19 October. Temporal SDK tests run in-process without a server. Temporal CLI and modern kubectl are installed, and editor/debugger tools were updated on 17 October. Temporal/Podman service availability was last verified on 17 October. The core project uses simulated GPU hosts; it needs no physical GPUs, CUDA toolkit, NVIDIA drivers, Redfish hardware, or cloud account. A full kind cluster is optional and has not been created.
+Complete live lab verified on 20 October: dedicated kind Kubernetes cluster Ready, existing Temporal server healthy, persistent HTTP mock provider, worker/controller host processes, and Kubernetes web workload. Fresh make test and twelve real-server checks passed. Physical GPU actions remain simulated; no cloud account, physical GPUs, CUDA, drivers, or bare metal are required. Historical observations below retain their original dates; current controls are in lab/LIVE.md.
+
+### 20 October 2026 - Live runtime
+
+- Go 1.27.2 darwin/arm64; kind 0.33.0; kubectl 1.37.1; Temporal CLI 1.9.1, embedded server 1.32.0, UI 2.54.1 rechecked.
+- Existing Podman infrastructure-tutorial VM was running and reused. Created dedicated kind infrastructure-tutorial using kindest/node:v1.37.0; real control-plane Node Ready, containerd 2.3.4. Kubeconfig is repo-local .local/kubeconfig, explicit context kind-infrastructure-tutorial; no default user kubeconfig rewrite.
+- Existing Temporal process at 127.0.0.1:7233 reused; operator cluster health reports SERVING, UI HTTP 200. Persistent .local/temporal/dev.db preserved.
+- make up builds lab/bin/{provider,worker,controller,replay}; script tracks host processes/logs under .local/runtime. Provider HTTP is 127.0.0.1:9080 with state .local/provider/state.json. Controller probes 127.0.0.1:8091; Kubernetes web port-forward 127.0.0.1:8088.
+- Applied GPUCluster CRD, namespace infrastructure-tutorial, web ConfigMap/Deployment/Service, and Ready sample GPUCluster/demo-gpu. Twelve live checks cover real process crashes/restarts, response loss, status recovery, replay, terminal failure, active/stopped-worker deletion and cancellation acknowledgment ordering. Histories/results saved under .local/live.
+- Fresh full make test passed with race detector, native envtest and Python process-control tests. Reused per-command DEVELOPER_DIR=/Library/Developer/CommandLineTools; no global Xcode/license/shell changes. Runtime's zap logging adds existing transitive modules to direct/indirect Go requirements; no new server/tool installation needed.
+- Services, cluster, three mock demo hosts and web workload left running. make down stops host lab processes/port-forward while preserving Temporal, kind and state. See lab/LIVE.md for full controls; recheck availability after reboot/session change.
 
 ### Before installation, 17 October 2026 (historical)
 

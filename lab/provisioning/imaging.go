@@ -29,7 +29,6 @@ type ImagingActivities struct {
 }
 
 // EnsureImage recovers an existing job by request key, then observes completion.
-// This activity is not wired into ProvisionCluster yet.
 func (a *ImagingActivities) EnsureImage(ctx context.Context, req lab.ImageRequest) (lab.ImageJob, error) {
 	if err := ctx.Err(); err != nil {
 		return lab.ImageJob{}, err

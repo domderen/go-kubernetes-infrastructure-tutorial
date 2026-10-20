@@ -6,3 +6,4 @@ lab/bin/
 lab/coverage.out
 lab/cover.out
 lab/*.test
+__pycache__/

@@ -41,6 +41,26 @@ spec:
             description: GPUClusterSpec is immutable until a later lesson adds a spec-change
               policy.
             properties:
+              gpuClass:
+                default: mock-a100
+                description: |-
+                  GPUClass is validated by the provider so unsupported classes demonstrate
+                  terminal workflow failure rather than API admission failure.
+                minLength: 1
+                type: string
+              imageVersion:
+                default: os-v1
+                description: ImageVersion is the simulated operating system image
+                  intent.
+                minLength: 1
+                type: string
+              maxParallel:
+                default: 2
+                description: MaxParallel bounds per-host provisioning within one workflow.
+                format: int32
+                maximum: 10
+                minimum: 1
+                type: integer
               nodeCount:
                 description: NodeCount requests allocations, without claiming the
                   hosts are healthy.
@@ -133,9 +153,22 @@ spec:
                   - slot
                   type: object
                 type: array
+              lastError:
+                type: string
               observedGeneration:
                 format: int64
                 type: integer
+              phase:
+                description: Phase reports the durable operation; Ready also requires
+                  observed inventory.
+                type: string
+              readyHosts:
+                format: int32
+                type: integer
+              runID:
+                type: string
+              workflowID:
+                type: string
             type: object
         required:
         - spec

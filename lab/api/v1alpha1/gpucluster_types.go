@@ -25,6 +25,23 @@ type GPUClusterSpec struct {
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=100
 	NodeCount int32 `json:"nodeCount"`
+	// ImageVersion is the simulated operating system image intent.
+	// +kubebuilder:default="os-v1"
+	// +kubebuilder:validation:MinLength=1
+	// +optional
+	ImageVersion string `json:"imageVersion,omitempty"`
+	// GPUClass is validated by the provider so unsupported classes demonstrate
+	// terminal workflow failure rather than API admission failure.
+	// +kubebuilder:default="mock-a100"
+	// +kubebuilder:validation:MinLength=1
+	// +optional
+	GPUClass string `json:"gpuClass,omitempty"`
+	// MaxParallel bounds per-host provisioning within one workflow.
+	// +kubebuilder:default=2
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=10
+	// +optional
+	MaxParallel int32 `json:"maxParallel,omitempty"`
 }
 
 type AllocatedHost struct {
@@ -36,6 +53,12 @@ type GPUClusterStatus struct {
 	ObservedGeneration int64           `json:"observedGeneration,omitempty"`
 	AllocatedHosts     int32           `json:"allocatedHosts,omitempty"`
 	Hosts              []AllocatedHost `json:"hosts,omitempty"`
+	WorkflowID         string          `json:"workflowID,omitempty"`
+	RunID              string          `json:"runID,omitempty"`
+	// Phase reports the durable operation; Ready also requires observed inventory.
+	Phase      string `json:"phase,omitempty"`
+	ReadyHosts int32  `json:"readyHosts,omitempty"`
+	LastError  string `json:"lastError,omitempty"`
 	// Conditions describe allocation confirmation separately from last-known capacity.
 	// +listType=map
 	// +listMapKey=type

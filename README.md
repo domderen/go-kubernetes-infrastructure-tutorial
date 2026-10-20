@@ -4,6 +4,12 @@ A hands-on tutorial for learning Go, Kubernetes controllers, and Temporal by bui
 
 The cumulative lab uses a simulated host provider. It introduces bounded health checks, resource reconciliation, durable provisioning workflows, and recovery from partial failures. GPU capacity is a concrete example; the exercises run locally without GPUs or a cloud account.
 
+## Working local system
+
+The complete provisioner runs against a real local kind cluster and Temporal server. See [the live lab](lab/LIVE.md) for startup, inspection, crash/recovery checks, and controls. The running demo is available at [localhost:8088](http://127.0.0.1:8088), with [Temporal history at localhost:8233](http://127.0.0.1:8233).
+
+From `lab/`, run `make up`, `make demo`, and `make live-test`. GPUCluster provisioning now includes reservation, bounded imaging/joining/validation, persistent mock-provider state, Kubernetes status projection, and coordinated deletion.
+
 ## Learning path
 
 1. **Go fundamentals:** concurrency limits, cooperative cancellation, shared state, errors, and diagnostics.
@@ -21,7 +27,7 @@ Start with the [tutorial guide](reference/guide.txt) and [official documentation
 - `lab/provider.go` and [the fleet demo](lab/examples/fleet/README.md): a simulated host provider with healthy, unhealthy, slow, and canceled health checks (`go run ./examples/fleet` from `lab/`).
 - `lab/allocation.go`, `lab/reconcile.go`, and [the reconciliation demo](lab/examples/reconcile/README.md): UID-owned allocations, recovery after a controller loses its report, repeatable cleanup, and rejection of delayed provisioning (`go run ./examples/reconcile` from `lab/`).
 - [The Kubernetes controller](lab/controller/README.md): a typed GPUCluster API, finalizers, allocation conditions, watch/poll scheduling, and failure-recovery tests with a real manager against a temporary API server (`make test` from `lab/`).
-- [The Temporal workflow and imaging activity](lab/provisioning/README.md): a reservation workflow plus a separately tested imaging activity with stable provider identity, polling/heartbeats, cancellation, and bounded retry tests.
+- [The Temporal provisioning workflow](lab/provisioning/README.md): reservation followed by bounded imaging, joining, and validation, with stable provider identity, heartbeats, cancellation, compensation, and real-history replay tests.
 - [Imaging job identity](lab/imaging.go): the simulated provider recovers one job by a stable owner/operation key, even when the returned job ID is lost. Explicit completion events let tests observe success without real imaging.
 - `lab/examples/slices/`: runnable examples comparing length, capacity, backing-array reuse, and nested shallow copies (`go run ./examples/slices` from `lab/`).
 - [Learning progress](notes/PROGRESS.md): demonstrated understanding and the next exercise.
@@ -39,6 +45,6 @@ Open this directory and ask to continue the tutorial. The tutor reads the saved 
 cd ~/dev/go-kubernetes-infrastructure-tutorial
 ```
 
-Module 1's checker and simulated fleet are implemented. Module 2 includes a typed GPUCluster controller with finalizers, allocation conditions, watches, and periodic inventory checks. Envtest covers direct reconciliation and a real manager responding to API changes. Module 3 has a reservation-only workflow plus a separately tested EnsureImage activity that polls and heartbeats against simulated job completion. Wiring imaging into the workflow, real imaging, joining, persisted-history/worker-restart exercises, and controller integration are later increments. Use the progress notes for the current question. Provider state lives only in memory; the manager and workflow currently run inside tests, and no standalone controller or kind cluster is running. The assistant writes small implementations; the learner practices reading, reviewing, predicting behavior, and explaining tradeoffs. Go language details are introduced when the project needs them. No learning module has been completed yet.
+The cumulative implementation now connects GPUCluster reconciliation to a complete Temporal workflow and a persistent HTTP mock provider. It reserves hosts and runs bounded imaging, simulated joining, and GPU validation, with explicit compensation and fenced deletion. A dedicated kind cluster, Temporal service, host controller/worker/provider, and Kubernetes web workload form the live lab. Real-server tests cover response loss, process crashes, history replay, status recovery, terminal errors, and cancellation. Implementation is separate from demonstrated learner understanding; the progress notes preserve that distinction. The remaining lessons can use this working system for code reading and failure walkthroughs.
 
-The Go toolchain, Temporal CLI, kubectl, and updated Go editor/debugger tools are installed. Local Temporal and a fresh Podman VM were started and verified on 17 October 2026; see the environment notes for service controls. Pinned Kubernetes dependencies and matching native envtest assets were added on 18 October, and the Temporal Go SDK/test suite on 19 October. A full kind cluster is optional; the current tests need no container engine or running Temporal server.
+The Go toolchain, Temporal CLI, kubectl, kind, and Podman are installed. See the environment notes and live-lab guide for verified versions and process controls. Unit/envtest checks run without the persistent cluster or Temporal service; `make live-test` explicitly uses both running servers.

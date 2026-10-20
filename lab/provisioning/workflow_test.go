@@ -3,6 +3,7 @@ package provisioning
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -20,7 +21,7 @@ import (
 // discovery alone: the retry's discovery deliberately hides the created host.
 func TestProvisionClusterRetriesLostResponseWithStableIdentity(t *testing.T) {
 	provider := &faultProvider{SimulatedAllocator: &lab.SimulatedAllocator{}, loseResponse: true}
-	env, attempts := executeProvision(t, provider, Request{ClusterUID: "cluster-A", NodeCount: 3})
+	env, attempts := executeProvision(t, provider, Request{ClusterUID: "cluster-A", NodeCount: 3, OperationID: "revision-1", ImageVersion: "os-v1"})
 	if err := env.GetWorkflowError(); err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +53,7 @@ func TestProvisionClusterRetriesLostResponseWithStableIdentity(t *testing.T) {
 // Catches unbounded retrying or allocating after failed provider discovery.
 func TestProvisionClusterBoundsTransientRetries(t *testing.T) {
 	provider := &faultProvider{SimulatedAllocator: &lab.SimulatedAllocator{}, listErr: errors.New("provider unavailable")}
-	env, attempts := executeProvision(t, provider, Request{ClusterUID: "cluster-A", NodeCount: 3})
+	env, attempts := executeProvision(t, provider, Request{ClusterUID: "cluster-A", NodeCount: 3, OperationID: "revision-1", ImageVersion: "os-v1"})
 	if err := env.GetWorkflowError(); err == nil || !strings.Contains(err.Error(), "provider unavailable") {
 		t.Fatalf("workflow error=%v; want provider failure", err)
 	}
@@ -72,9 +73,9 @@ func TestProvisionClusterRejectsInvalidRequests(t *testing.T) {
 		name    string
 		request Request
 	}{
-		{"missing UID", Request{NodeCount: 3}},
-		{"negative count", Request{ClusterUID: "cluster-A", NodeCount: -1}},
-		{"above lab limit", Request{ClusterUID: "cluster-A", NodeCount: 101}},
+		{"missing UID", Request{NodeCount: 3, OperationID: "revision-1", ImageVersion: "os-v1"}},
+		{"negative count", Request{ClusterUID: "cluster-A", NodeCount: -1, OperationID: "revision-1", ImageVersion: "os-v1"}},
+		{"above lab limit", Request{ClusterUID: "cluster-A", NodeCount: 101, OperationID: "revision-1", ImageVersion: "os-v1"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			provider := &faultProvider{SimulatedAllocator: &lab.SimulatedAllocator{}}
@@ -98,7 +99,7 @@ func TestProvisionClusterDoesNotRetryReleasedOwner(t *testing.T) {
 	if err := provider.ReleaseHosts(t.Context(), "cluster-A"); err != nil {
 		t.Fatal(err)
 	}
-	env, attempts := executeProvision(t, provider, Request{ClusterUID: "cluster-A", NodeCount: 1})
+	env, attempts := executeProvision(t, provider, Request{ClusterUID: "cluster-A", NodeCount: 1, OperationID: "revision-1", ImageVersion: "os-v1"})
 	assertNonRetryable(t, env.GetWorkflowError())
 	if attempts != 1 {
 		t.Fatalf("released UID attempts=%d; want 1", attempts)
@@ -109,16 +110,16 @@ func TestProvisionClusterDoesNotRetryReleasedOwner(t *testing.T) {
 	}
 }
 
-// Scale-down is intentionally unsupported: retries must not alter the existing
-// reservation or keep retrying a request the provider cannot fulfill.
+// Scale-down is unsupported: stop retrying and explicitly release this failed
+// lifecycle's existing reservations.
 func TestProvisionClusterRejectsScaleDown(t *testing.T) {
 	provider := &faultProvider{SimulatedAllocator: &lab.SimulatedAllocator{}}
-	existing, err := provider.SimulatedAllocator.EnsureHost(t.Context(), "cluster-A", 2)
+	_, err := provider.SimulatedAllocator.EnsureHost(t.Context(), "cluster-A", 2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	env, attempts := executeProvision(t, provider, Request{ClusterUID: "cluster-A", NodeCount: 1})
+	env, attempts := executeProvision(t, provider, Request{ClusterUID: "cluster-A", NodeCount: 1, OperationID: "revision-1", ImageVersion: "os-v1"})
 	assertNonRetryable(t, env.GetWorkflowError())
 	if attempts != 1 {
 		t.Fatalf("unsupported scale-down attempts=%d; want 1", attempts)
@@ -128,12 +129,93 @@ func TestProvisionClusterRejectsScaleDown(t *testing.T) {
 		t.Fatalf("scale-down attempted new allocations: %v", keys)
 	}
 	hosts, err := provider.SimulatedAllocator.ListHosts(t.Context(), "cluster-A")
-	if err != nil || len(hosts) != 1 || hosts[0] != existing {
-		t.Fatalf("scale-down changed inventory: %v, %v; want %v", hosts, err, existing)
+	if err != nil || len(hosts) != 0 {
+		t.Fatalf("failed lifecycle left reservations: %v, %v", hosts, err)
 	}
 }
 
-func executeProvision(t *testing.T, provider lab.HostAllocator, req Request) (*testsuite.TestWorkflowEnvironment, int) {
+// Catches skipping imaging, changing its key on retry, sharing a key between
+// hosts, or repeating reservation because a later activity lost its response.
+func TestProvisionClusterImagesReservedHostsAfterLostResponse(t *testing.T) {
+	provider := &faultProvider{SimulatedAllocator: &lab.SimulatedAllocator{}, loseImageResponse: true}
+	req := Request{ClusterUID: "cluster-A", NodeCount: 2, OperationID: "revision-1", ImageVersion: "os-v1"}
+	env, reservations := executeProvision(t, provider, req)
+	if err := env.GetWorkflowError(); err != nil {
+		t.Fatal(err)
+	}
+	var hosts []lab.HostAllocation
+	if err := env.GetWorkflowResult(&hosts); err != nil {
+		t.Fatal(err)
+	}
+	if reservations != 1 || len(hosts) != 2 {
+		t.Fatalf("reservation attempts=%d hosts=%v; want 1 and 2", reservations, hosts)
+	}
+	requests, jobs := provider.imageSnapshot()
+	first := lab.ImageRequest{OwnerUID: "cluster-A", OperationID: "revision-1/image/1", HostID: hosts[0].ID, ImageVersion: "os-v1"}
+	second := lab.ImageRequest{OwnerUID: "cluster-A", OperationID: "revision-1/image/2", HostID: hosts[1].ID, ImageVersion: "os-v1"}
+	if !reflect.DeepEqual(requests, []lab.ImageRequest{first, first, second}) {
+		t.Fatalf("image requests=%+v; want first host retried unchanged, then second host", requests)
+	}
+	if len(jobs) != 3 || jobs[0].ID != jobs[1].ID || jobs[0].ID == jobs[2].ID {
+		t.Fatalf("jobs=%+v; want one job per host, reused across retry", jobs)
+	}
+	for _, job := range []lab.ImageJob{jobs[0], jobs[2]} {
+		observed, err := provider.SimulatedAllocator.GetImageJob(t.Context(), "cluster-A", job.ID)
+		if err != nil || !observed.Done {
+			t.Fatalf("workflow returned before imaging completed: %+v, %v", observed, err)
+		}
+	}
+}
+
+// Catches allocating capacity before finding out the image intent is invalid.
+func TestProvisionClusterRejectsMissingImageIntentBeforeReservation(t *testing.T) {
+	for _, req := range []Request{
+		{ClusterUID: "cluster-A", NodeCount: 2, ImageVersion: "os-v1"},
+		{ClusterUID: "cluster-A", NodeCount: 2, OperationID: "revision-1"},
+	} {
+		provider := &faultProvider{SimulatedAllocator: &lab.SimulatedAllocator{}}
+		env, reservations := executeProvision(t, provider, req)
+		assertNonRetryable(t, env.GetWorkflowError())
+		keys, _, lists := provider.snapshot()
+		if reservations != 0 || lists != 0 || len(keys) != 0 {
+			t.Fatalf("invalid image intent touched reservation: attempts=%d lists=%d keys=%v", reservations, lists, keys)
+		}
+	}
+}
+
+// Catches treating a conflicting old job as success or proceeding to later
+// hosts after a terminal image error. Accepted jobs survive explicit cleanup.
+func TestProvisionClusterStopsOnConflictingImageIntent(t *testing.T) {
+	provider := &faultProvider{SimulatedAllocator: &lab.SimulatedAllocator{}}
+	host, err := provider.SimulatedAllocator.EnsureHost(t.Context(), "cluster-A", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	original, err := provider.SimulatedAllocator.EnsureImageJob(t.Context(), lab.ImageRequest{
+		OwnerUID: "cluster-A", OperationID: "revision-1/image/1", HostID: host.ID, ImageVersion: "os-v0",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	env, reservations := executeProvision(t, provider, Request{ClusterUID: "cluster-A", NodeCount: 2, OperationID: "revision-1", ImageVersion: "os-v1"})
+	assertNonRetryable(t, env.GetWorkflowError())
+	requests, _ := provider.imageSnapshot()
+	if reservations != 1 || len(requests) != 1 || requests[0].HostID != host.ID {
+		t.Fatalf("reservation attempts=%d image requests=%+v; want one terminal imaging attempt", reservations, requests)
+	}
+	// Cleanup fences observations/new work; an already accepted external image
+	// job remains and can still complete after owner release.
+	observed, err := provider.SimulatedAllocator.CompleteImageJob(t.Context(), "cluster-A", original.ID)
+	if err != nil || observed.ID != original.ID || observed.Request != original.Request {
+		t.Fatalf("conflict discarded original job: %+v, %v", observed, err)
+	}
+	hosts, err := provider.SimulatedAllocator.ListHosts(t.Context(), "cluster-A")
+	if err != nil || len(hosts) != 0 {
+		t.Fatalf("failed imaging left reservations: %v, %v", hosts, err)
+	}
+}
+
+func executeProvision(t *testing.T, provider *faultProvider, req Request) (*testsuite.TestWorkflowEnvironment, int) {
 	t.Helper()
 	var suite testsuite.WorkflowTestSuite
 	env := suite.NewTestWorkflowEnvironment()
@@ -141,8 +223,18 @@ func executeProvision(t *testing.T, provider lab.HostAllocator, req Request) (*t
 	env.RegisterWorkflow(ProvisionCluster)
 	activities := &Activities{Provider: provider}
 	env.RegisterActivityWithOptions(activities.ReserveHosts, activity.RegisterOptions{Name: ReserveHostsActivity})
+	imaging := &ImagingActivities{Provider: provider, PollInterval: time.Millisecond}
+	env.RegisterActivityWithOptions(imaging.EnsureImage, activity.RegisterOptions{Name: EnsureImageActivity})
+	lifecycle := &LifecycleActivities{Provider: &lifecycleProvider{faultProvider: provider, joined: make(map[string]bool)}}
+	env.RegisterActivityWithOptions(lifecycle.JoinCluster, activity.RegisterOptions{Name: JoinClusterActivity})
+	env.RegisterActivityWithOptions(lifecycle.ValidateGPU, activity.RegisterOptions{Name: ValidateGPUActivity})
+	env.RegisterActivityWithOptions(lifecycle.ReleaseHosts, activity.RegisterOptions{Name: ReleaseHostsActivity})
 	var attempts atomic.Int32
-	env.SetOnActivityStartedListener(func(*activity.Info, context.Context, converter.EncodedValues) { attempts.Add(1) })
+	env.SetOnActivityStartedListener(func(info *activity.Info, _ context.Context, _ converter.EncodedValues) {
+		if info.ActivityType.Name == ReserveHostsActivity {
+			attempts.Add(1)
+		}
+	})
 	env.ExecuteWorkflow(ProvisionCluster, req)
 	if !env.IsWorkflowCompleted() {
 		t.Fatal("workflow did not complete in test environment")
@@ -167,13 +259,44 @@ type allocationCall struct {
 // across attempts. This models a lost provider response, not a worker restart.
 type faultProvider struct {
 	*lab.SimulatedAllocator
-	mu           sync.Mutex
-	listErr      error
-	loseResponse bool
-	hideNextList bool
-	listCalls    int
-	keys         []allocationCall
-	firstCreated lab.HostAllocation
+	mu                sync.Mutex
+	listErr           error
+	loseResponse      bool
+	hideNextList      bool
+	listCalls         int
+	keys              []allocationCall
+	firstCreated      lab.HostAllocation
+	loseImageResponse bool
+	imageRequests     []lab.ImageRequest
+	imageJobs         []lab.ImageJob
+}
+
+func (p *faultProvider) EnsureImageJob(ctx context.Context, req lab.ImageRequest) (lab.ImageJob, error) {
+	job, err := p.SimulatedAllocator.EnsureImageJob(ctx, req)
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.imageRequests = append(p.imageRequests, req)
+	p.imageJobs = append(p.imageJobs, job)
+	if err == nil && p.loseImageResponse {
+		p.loseImageResponse = false
+		return lab.ImageJob{}, errors.New("image creation response lost")
+	}
+	return job, err
+}
+
+// Tests supply a completion event on the first read of each job. The production
+// provider does not complete jobs automatically when polled.
+func (p *faultProvider) GetImageJob(ctx context.Context, uid, jobID string) (lab.ImageJob, error) {
+	if _, err := p.SimulatedAllocator.CompleteImageJob(ctx, uid, jobID); err != nil {
+		return lab.ImageJob{}, err
+	}
+	return p.SimulatedAllocator.GetImageJob(ctx, uid, jobID)
+}
+
+func (p *faultProvider) imageSnapshot() ([]lab.ImageRequest, []lab.ImageJob) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]lab.ImageRequest(nil), p.imageRequests...), append([]lab.ImageJob(nil), p.imageJobs...)
 }
 
 func (p *faultProvider) ListHosts(ctx context.Context, uid string) ([]lab.HostAllocation, error) {
